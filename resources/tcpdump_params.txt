@@ -1,0 +1,3 @@
+tcpdump -s 0 -i en0 port 1883 -w ~/Desktop/s2.pcap
+
+tshark -r basic_test.pcap -Tfields -e frame.number -e ip.src -e tcp.srcport -e ip.dst -e tcp.dstport -e data.data
