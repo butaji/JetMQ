@@ -35,6 +35,39 @@ class RequestsHandler extends Actor {
 
           connection ! Codec[Packet].encode(back).toTcpWrite
         }
+        case p: Publish => {
+
+          if (p.header.qos == 1) {
+            val back = Puback(Header(false, 0, false), p.message_identifier)
+
+            println("sending back " + back)
+
+            connection ! Codec[Packet].encode(back).toTcpWrite
+          }
+
+          if (p.header.qos == 2) {
+            val back = Pubrec(Header(false, 0, false), p.message_identifier)
+
+            println("sending back " + back)
+
+            connection ! Codec[Packet].encode(back).toTcpWrite
+
+          }
+        }
+        case p: Pubrel => {
+          val back = Pubcomp(Header(false, 0, false), p.message_identifier)
+
+          println("sending back " + back)
+
+          connection ! Codec[Packet].encode(back).toTcpWrite
+        }
+        case p : Unsubscribe => {
+          val back = Unsuback(Header(false, 0, false), p.message_identifier)
+
+          println("sending back " + back)
+
+          connection ! Codec[Packet].encode(back).toTcpWrite
+        }
         case x => {
           println("Unexpected message " + x)
 
@@ -62,13 +95,17 @@ class RequestsHandler extends Actor {
 
       packet match {
         case p: Connect => {
-          val back = Connack(Header(false, 0, false), 0)
+          val result = if (p.clientId.length == 0 && p.connect_flags.clean_session == false)  2 else 0
+
+          val back = Connack(Header(false, 0, false), result)
 
           println("sending back " + back)
 
           sender() ! Codec[Packet].encode(back).toTcpWrite
 
-          context become connected(sender())
+          if (result == 0) {
+            context become connected(sender())
+          }
         }
         case x => {
           println("Unexpected message " + x)
