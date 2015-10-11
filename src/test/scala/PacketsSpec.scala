@@ -4,7 +4,7 @@ import org.specs2.mutable._
 import scodec.Codec
 import scodec.bits._
 
-object PacketsSpec extends Specification {
+class PacketsSpec extends Specification {
 
   "HEADER must be decoded with valid input" >> {
     Codec[Header].decode(bin"0000").require.value mustEqual Header(false,0,false)

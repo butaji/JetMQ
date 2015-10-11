@@ -33,6 +33,9 @@ class RequestsHandler extends Actor {
 
           println("sending back " + back)
 
+          p.topics.foreach(t =>
+            MqttEventBusInstance.get.subscribe(self, t._1))
+
           connection ! Codec[Packet].encode(back).toTcpWrite
         }
         case p: Publish => {
@@ -53,6 +56,8 @@ class RequestsHandler extends Actor {
             connection ! Codec[Packet].encode(back).toTcpWrite
 
           }
+
+          MqttEventBusInstance.get.publish(MsgEnvelope(p.topic, PublishPayload(p)))
         }
         case p: Pubrel => {
           val back = Pubcomp(Header(false, 0, false), p.message_identifier)
@@ -75,6 +80,16 @@ class RequestsHandler extends Actor {
         }
       }
     }
+    case PublishPayload(p) => {
+
+      val back = Publish(p.header, p.topic, p.message_identifier, p.payload)
+
+      println("sending back " + back)
+
+      connection ! Codec[Packet].encode(back).toTcpWrite
+
+    }
+
     case x => {
       println("Unexpected message " + x)
 
