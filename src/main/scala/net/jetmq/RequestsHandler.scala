@@ -73,6 +73,14 @@ class RequestsHandler extends Actor {
 
           connection ! Codec[Packet].encode(back).toTcpWrite
         }
+        case p: Pingreq => {
+          val back = Pingresp(Header(false, 0, false))
+
+          println("sending back " + back)
+
+          connection ! Codec[Packet].encode(back).toTcpWrite
+        }
+
         case x => {
           println("Unexpected message " + x)
 
