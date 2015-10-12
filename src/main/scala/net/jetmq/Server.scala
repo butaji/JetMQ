@@ -30,7 +30,8 @@ class Server extends Actor {
 
       log.info("client connected " + remote)
 
-      val handler = context.actorOf(Props[RequestsHandler])
+      val bus = system.actorOf(Props[EventBusActor])
+      val handler = system.actorOf(Props(new RequestsHandler(bus)))
       val connection = sender()
       connection ! Register(handler)
     }

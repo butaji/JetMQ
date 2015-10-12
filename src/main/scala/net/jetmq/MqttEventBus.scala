@@ -20,7 +20,10 @@ class EventBusActor extends Actor {
       log.info("subscribe " + p)
       MqttTopicClassificator.checkTopicName(p.topic)
 
-      context become working((p.topic, p.actor) :: subscriptions)
+      if (subscriptions.filter(t => (t._1 == p.topic) && (t._2 == p.actor)).length == 0)
+        context become working((p.topic, p.actor) :: subscriptions)
+      else
+        log.info("subscription is already exist" + p)
     }
     case p: BusUnsubscribe => {
       log.info("unsubscribe " + p)
@@ -28,10 +31,14 @@ class EventBusActor extends Actor {
     }
     case p: BusPublish => {
 
-      subscriptions.filter(t => MqttTopicClassificator.isSubclass(p.topic, t._1)).map(t => t._2).foreach(t => {
-        log.info("publish " + p)
-        t ! p.payload
-      })
+      subscriptions
+        .filter(t => MqttTopicClassificator.isSubclass(p.topic, t._1))
+        .groupBy(t => t._2)
+        .map(t => (t._1, t._2.toArray ))
+        .foreach(t => {
+          log.info("publish " + p + " by subscriptions " + t._2)
+          t._1 ! p.payload
+        })
     }
 
   }
@@ -45,8 +52,12 @@ class EventBusActor extends Actor {
 
       context become working(List((p.topic, p.actor)))
     }
-    case p: BusUnsubscribe => ???
-    case p: BusPublish => ???
+    case p: BusUnsubscribe => {
+      log.info("got " + p + " but there are no subscriptions")
+    }
+    case p: BusPublish => {
+      log.info("got " + p + " but there are no subscriptions")
+    }
   }
 }
 

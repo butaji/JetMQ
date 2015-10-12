@@ -60,7 +60,7 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
 
           }
 
-          eventBus ! BusPublish(p.topic, p)
+          eventBus ! BusPublish(p.topic, PublishPayload(p))
         }
         case p: Pubrec => {
           val back = Pubrel(Header(false, 0, false), p.message_identifier)
@@ -95,7 +95,7 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
         }
 
         case x => {
-          log.info("Unexpected message " + x)
+          log.info("Unexpected message for connected" + x)
 
           context stop self
         }
@@ -112,7 +112,7 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
     }
 
     case x => {
-      log.info("Unexpected message " + x)
+      log.info("Unexpected row message for connected " + x)
 
       context become receive
     }
@@ -144,7 +144,7 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
           }
         }
         case x => {
-          log.info("Unexpected message " + x)
+          log.info("Unexpected message for unconnected " + x)
 
           context stop self
         }
