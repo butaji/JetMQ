@@ -1,40 +1,43 @@
 package net.jetmq.broker
 
 import akka.actor.{ActorRef, Actor}
+import akka.event.Logging
 import akka.io.Tcp.{PeerClosed, Received}
 import net.jetmq.Helpers._
 import net.jetmq.packets._
 import scodec.Codec
 
 
-class RequestsHandler extends Actor {
+class RequestsHandler(eventBus: ActorRef) extends Actor {
+
+  val log = Logging.getLogger(context.system, this)
 
   def connected(connection: ActorRef):Receive = {
     case Received(data) => {
-      println("received data from " + connection + ": " + data.map("%02X" format _).mkString)
+      log.info("received data from " + connection + ": " + data.map("%02X" format _).mkString)
 
       val packet = Codec[Packet].decode(data.toArray.toBitVector).require.value
 
-      println("received " + packet)
+      log.info("received " + packet)
 
       packet match {
         case p: Connect => {
-          println("Already connected")
+          log.info("Already connected")
 
           context stop self
         }
         case p: Disconnect => {
-          println("Disconnect")
+          log.info("Disconnect")
 
           context stop self
         }
         case p: Subscribe => {
+          p.topics.foreach(t =>
+            eventBus ! BusSubscribe(t._1, self))
+
           val back = Suback(Header(false, 0, false), p.message_identifier, p.topics.map(x => x._2))
 
-          println("sending back " + back)
-
-          p.topics.foreach(t =>
-            MqttEventBusInstance.get.subscribe(self, t._1))
+          log.info("sending back " + back)
 
           connection ! Codec[Packet].encode(back).toTcpWrite
         }
@@ -43,7 +46,7 @@ class RequestsHandler extends Actor {
           if (p.header.qos == 1) {
             val back = Puback(Header(false, 0, false), p.message_identifier)
 
-            println("sending back " + back)
+            log.info("sending back " + back)
 
             connection ! Codec[Packet].encode(back).toTcpWrite
           }
@@ -51,38 +54,48 @@ class RequestsHandler extends Actor {
           if (p.header.qos == 2) {
             val back = Pubrec(Header(false, 0, false), p.message_identifier)
 
-            println("sending back " + back)
+            log.info("sending back " + back)
 
             connection ! Codec[Packet].encode(back).toTcpWrite
 
           }
 
-          MqttEventBusInstance.get.publish(MsgEnvelope(p.topic, PublishPayload(p)))
+          eventBus ! BusPublish(p.topic, p)
+        }
+        case p: Pubrec => {
+          val back = Pubrel(Header(false, 0, false), p.message_identifier)
+
+          log.info("sending back " + back)
+
+          connection ! Codec[Packet].encode(back).toTcpWrite
         }
         case p: Pubrel => {
           val back = Pubcomp(Header(false, 0, false), p.message_identifier)
 
-          println("sending back " + back)
+          log.info("sending back " + back)
 
           connection ! Codec[Packet].encode(back).toTcpWrite
         }
         case p : Unsubscribe => {
+          p.topics.foreach(t =>
+            eventBus ! BusUnsubscribe(t, self))
+
           val back = Unsuback(Header(false, 0, false), p.message_identifier)
 
-          println("sending back " + back)
+          log.info("sending back " + back)
 
           connection ! Codec[Packet].encode(back).toTcpWrite
         }
         case p: Pingreq => {
           val back = Pingresp(Header(false, 0, false))
 
-          println("sending back " + back)
+          log.info("sending back " + back)
 
           connection ! Codec[Packet].encode(back).toTcpWrite
         }
 
         case x => {
-          println("Unexpected message " + x)
+          log.info("Unexpected message " + x)
 
           context stop self
         }
@@ -92,14 +105,14 @@ class RequestsHandler extends Actor {
 
       val back = Publish(p.header, p.topic, p.message_identifier, p.payload)
 
-      println("sending back " + back)
+      log.info("sending back " + back)
 
       connection ! Codec[Packet].encode(back).toTcpWrite
 
     }
 
     case x => {
-      println("Unexpected message " + x)
+      log.info("Unexpected message " + x)
 
       context become receive
     }
@@ -110,11 +123,11 @@ class RequestsHandler extends Actor {
 
     case Received(data) => {
 
-      println("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
+      log.info("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
 
       val packet = Codec[Packet].decode(data.toArray.toBitVector).require.value
 
-      println("received " + packet)
+      log.info("received " + packet)
 
       packet match {
         case p: Connect => {
@@ -122,7 +135,7 @@ class RequestsHandler extends Actor {
 
           val back = Connack(Header(false, 0, false), result)
 
-          println("sending back " + back)
+          log.info("sending back " + back)
 
           sender() ! Codec[Packet].encode(back).toTcpWrite
 
@@ -131,7 +144,7 @@ class RequestsHandler extends Actor {
           }
         }
         case x => {
-          println("Unexpected message " + x)
+          log.info("Unexpected message " + x)
 
           context stop self
         }
@@ -140,7 +153,7 @@ class RequestsHandler extends Actor {
     }
 
     case PeerClosed => {
-      println("peer closed")
+      log.info("peer closed")
 
       context stop self
     }

@@ -1,6 +1,6 @@
 package net.jetmq.broker
 
-import akka.actor.ActorSystem
+import akka.actor.{Props, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit}
 import org.specs2.mutable._
 import org.specs2.specification.Scope
@@ -13,10 +13,12 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
 
     "simple pubsub" in {
 
-      val bus = new MqttEventBus
-      bus.subscribe(self, "greetings")
-      bus.publish(MsgEnvelope("time", "123"))
-      bus.publish(MsgEnvelope("greetings", "hello"))
+      val bus = system.actorOf(Props[EventBusActor])
+
+      bus ! BusSubscribe("greetings", self)
+      bus ! BusPublish("time", "123")
+      bus ! BusPublish("greetings", "hello")
+
       expectMsg("hello")
 
       expectNoMsg()
@@ -25,15 +27,15 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
 
     "4.7.1.2 Multi-level wildcard" in {
 
-      val bus = new MqttEventBus
-      bus.subscribe(self, "sport/tennis/player1/#")
-      bus.publish(MsgEnvelope("sport/tennis/player1", "1"))
+      val bus = system.actorOf(Props[EventBusActor])
+      bus ! BusSubscribe("sport/tennis/player1/#", self)
+      bus ! BusPublish("sport/tennis/player1", "1")
       expectMsg("1")
 
-      bus.publish(MsgEnvelope("sport/tennis/player1/ranking", "2"))
+      bus ! BusPublish("sport/tennis/player1/ranking", "2")
       expectMsg("2")
 
-      bus.publish(MsgEnvelope("sport/tennis/player1/score/wimbledon", "3"))
+      bus ! BusPublish("sport/tennis/player1/score/wimbledon", "3")
       expectMsg("3")
 
       expectNoMsg()
@@ -43,53 +45,58 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
 
     "support multilevel only with a wildcard" in {
 
-      val bus = new MqttEventBus
-      bus.subscribe(self, "sport/tennis/player2")
-      bus.publish(MsgEnvelope("sport/tennis/player2", "1"))
+      val bus = system.actorOf(Props[EventBusActor])
+      bus ! BusSubscribe("sport/tennis/player2", self)
+      bus ! BusPublish("sport/tennis/player2", "1")
       expectMsg("1")
 
-      bus.publish(MsgEnvelope("sport/tennis/player2/ranking", "2"))
+      bus ! BusPublish("sport/tennis/player2/ranking", "2")
 
       expectNoMsg()
       success
     }
 
-    "“sport/#” also matches the singular “sport”, since # includes the parent level" in {
-      val bus = new MqttEventBus
-      bus.subscribe(self, "sport/#")
-      bus.publish(MsgEnvelope("sport", "1"))
+    "square for parent level" in {
+      //“sport/#” also matches the singular “sport”, since # includes the parent level
+      val bus = system.actorOf(Props[EventBusActor])
+      bus ! BusSubscribe("sport/#", self)
+      bus ! BusPublish("sport", "1")
       expectMsg("1")
 
       expectNoMsg()
 
-      bus.subscribe(self, "#")
-      bus.publish(MsgEnvelope("sport", "2"))
+      bus ! BusSubscribe("#", self)
+      bus ! BusPublish("sport", "2")
+      expectMsg("2")
       expectMsg("2")
 
       expectNoMsg()
       success
     }
 
-    "“#” is valid and will receive every Application Message" in {
-      val bus = new MqttEventBus
-      bus.subscribe(self, "#")
-      bus.publish(MsgEnvelope("sport", "1"))
+    "square is root" in {
+      //“#” is valid and will receive every Application Message
+      val bus = system.actorOf(Props[EventBusActor])
+      bus ! BusSubscribe("#", self)
+      bus ! BusPublish("sport", "1")
       expectMsg("1")
 
-      bus.publish(MsgEnvelope("dw", "2"))
+      bus ! BusPublish("dw", "2")
       expectMsg("2")
 
-      bus.publish(MsgEnvelope("dw/1/2/3/values", "3"))
+      bus ! BusPublish("dw/1/2/3/values", "3")
       expectMsg("3")
 
       expectNoMsg()
       success
     }
 
-    "“sport/tennis/#” is valid" in {
-      val bus = new MqttEventBus
-      bus.subscribe(self, "sport/tennis/#")
-      bus.publish(MsgEnvelope("sport/tennis/123", "1"))
+    "work for valid input" in {
+      //“sport/tennis/#” is valid
+
+      val bus = system.actorOf(Props[EventBusActor])
+      bus ! BusSubscribe("sport/tennis/#", self)
+      bus ! BusPublish("sport/tennis/123", "1")
       expectMsg("1")
 
       expectNoMsg()
@@ -97,93 +104,99 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
     }
 
     "“sport/tennis#” is not valid" in {
-      val bus = new MqttEventBus
-      bus.subscribe(self, "sport/tennis#") must throwA[BadSubscriptionException]
+      MqttTopicClassificator.checkTopicName("sport/tennis#") must throwA[BadSubscriptionException]
     }
 
     "“sport/tennis/#/ranking”" in {
-      val bus = new MqttEventBus
-      bus.subscribe(self, "sport/tennis/#/ranking") must throwA[BadSubscriptionException]
+
+      MqttTopicClassificator.checkTopicName("sport/tennis/#/ranking") must throwA[BadSubscriptionException]
     }
 
-    "“sport/tennis/+” matches “sport/tennis/player1” and “sport/tennis/player2”, but not “sport/tennis/player1/ranking”" in {
-      val bus = new MqttEventBus
-      bus.subscribe(self, "sport/tennis/+")
-      bus.publish(MsgEnvelope("sport/tennis/player1", "1"))
+    "check only one level for plus" in {
+      //“sport/tennis/+” matches “sport/tennis/player1” and “sport/tennis/player2”, but not “sport/tennis/player1/ranking”
+      val bus = system.actorOf(Props[EventBusActor])
+      bus ! BusSubscribe("sport/tennis/+", self)
+      bus ! BusPublish("sport/tennis/player1", "1")
       expectMsg("1")
 
-      bus.publish(MsgEnvelope("sport/tennis/player2", "2"))
+      bus ! BusPublish("sport/tennis/player2", "2")
       expectMsg("2")
 
-      bus.publish(MsgEnvelope("sport/tennis/player1/ranking", "3"))
+      bus ! BusPublish("sport/tennis/player1/ranking", "3")
 
       expectNoMsg()
       success
     }
 
-    "“sport/+” does not match “sport” but it does match “sport/”" in {
-      val bus = new MqttEventBus
-      bus.subscribe(self, "sport/+")
-      bus.publish(MsgEnvelope("sport", "1"))
+    "check no parent level for plus" in {
+      //“sport/+” does not match “sport” but it does match “sport/”
+      val bus = system.actorOf(Props[EventBusActor])
+      bus ! BusSubscribe("sport/+", self)
+      bus ! BusPublish("sport", "1")
       expectNoMsg()
 
-      bus.publish(MsgEnvelope("sport/", "2"))
+      bus ! BusPublish("sport/", "2")
       expectMsg("2")
 
       success
     }
 
-    "“/finance” matches “+/+”" in {
-      val bus = new MqttEventBus
-      bus.subscribe(self, "+/+")
-      bus.publish(MsgEnvelope("/finance", "1"))
+    "check level for double plus" in {
+      //“/finance” matches “+/+”
+      val bus = system.actorOf(Props[EventBusActor])
+      bus ! BusSubscribe("+/+", self)
+      bus ! BusPublish("/finance", "1")
       expectMsg("1")
 
       success
     }
 
-    "“/finance” matches “/+”" in {
-      val bus = new MqttEventBus
-      bus.subscribe(self, "/+")
-      bus.publish(MsgEnvelope("/finance", "1"))
+    "check the same level" in {
+      //“/finance” matches “/+”"
+      val bus = system.actorOf(Props[EventBusActor])
+      bus ! BusSubscribe("/+", self)
+      bus ! BusPublish("/finance", "1")
       expectMsg("1")
 
       success
     }
 
-    "“/finance” does not match “+”" in {
-      val bus = new MqttEventBus
-      bus.subscribe(self, "+")
-      bus.publish(MsgEnvelope("/finance", "1"))
+    "chech different levels" in {
+      //“/finance” does not match “+”
+      val bus = system.actorOf(Props[EventBusActor])
+      bus ! BusSubscribe("+", self)
+      bus ! BusPublish("/finance", "1")
       expectNoMsg()
 
       success
     }
 
-    "“+/tennis/#” is valid" in {
-      val bus = new MqttEventBus
-      bus.subscribe(self, "+/tennis/#")
-      bus.publish(MsgEnvelope("sport/tennis/values", "1"))
+    "check both plus and square" in {
+      //“+/tennis/#” is valid
+      val bus = system.actorOf(Props[EventBusActor])
+      bus ! BusSubscribe("+/tennis/#", self)
+      bus ! BusPublish("sport/tennis/values", "1")
       expectMsg("1")
 
-      bus.publish(MsgEnvelope("sellings/tennis/summer", "2"))
+      bus ! BusPublish("sellings/tennis/summer", "2")
       expectMsg("2")
 
       success
     }
 
     "sport+” is not valid" in {
-      val bus = new MqttEventBus
-      bus.subscribe(self, "sport+") must throwA[BadSubscriptionException]
+
+      MqttTopicClassificator.checkTopicName("sport+") must throwA[BadSubscriptionException]
     }
 
-    "“sport/+/player1” is valid" in {
-      val bus = new MqttEventBus
-      bus.subscribe(self, "sport/+/player1")
-      bus.publish(MsgEnvelope("sport/tennis/player1", "1"))
+    "check plus in a middle" in {
+      //“sport/+/player1” is valid
+      val bus = system.actorOf(Props[EventBusActor])
+      bus ! BusSubscribe("sport/+/player1", self)
+      bus ! BusPublish("sport/tennis/player1", "1")
       expectMsg("1")
 
-      bus.publish(MsgEnvelope("port/boxing/player1", "2"))
+      bus ! BusPublish("sport/boxing/player1", "2")
       expectMsg("2")
 
       success
