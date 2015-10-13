@@ -7,7 +7,7 @@ import net.jetmq.packets.Publish
 case class BusSubscribe(topic: String, actor: ActorRef)
 case class BusUnsubscribe(topic: String, actor: ActorRef)
 
-case class BusPublish(topic: String, payload: Any)
+case class BusPublish(topic: String, payload: Any, retain: Boolean = false)
 
 case class PublishPayload(payload: Publish)
 
@@ -15,19 +15,28 @@ class EventBusActor extends Actor {
 
   val log = Logging.getLogger(context.system, this)
 
-  def working(subscriptions: List[(String, ActorRef)]): Receive = {
+  context become working(List(), List())
+
+  def working(subscriptions: List[(String, ActorRef)], retains: List[(String, Any)]): Receive = {
     case p: BusSubscribe => {
       log.info("subscribe " + p)
       MqttTopicClassificator.checkTopicName(p.topic)
 
-      if (subscriptions.filter(t => (t._1 == p.topic) && (t._2 == p.actor)).length == 0)
-        context become working((p.topic, p.actor) :: subscriptions)
-      else
-        log.info("subscription is already exist" + p)
+      if (!subscriptions.exists(t => (t._1 == p.topic) && (t._2 == p.actor))) {
+        context become working((p.topic, p.actor) :: subscriptions, retains)
+      } else {
+        log.info("subscription already exists " + p)
+      }
+
+      retains
+        .filter(t => MqttTopicClassificator.isSubclass(t._1, p.topic))
+        .foreach(t => {
+          p.actor ! t._2
+        })
     }
     case p: BusUnsubscribe => {
       log.info("unsubscribe " + p)
-      context become working(subscriptions.filter(t => t._1 == p.topic && t._2 == p.actor))
+      context become working(subscriptions.filter(t => !(t._1 == p.topic && t._2 == p.actor)), retains)
     }
     case p: BusPublish => {
 
@@ -39,24 +48,18 @@ class EventBusActor extends Actor {
           log.info("publish " + p + " by subscriptions " + t._2)
           t._1 ! p.payload
         })
+
+      if (p.retain == true) {
+        context become working(subscriptions, (p.topic, p.payload) :: retains.filter(x => x._1 != p.topic))
+      }
     }
 
   }
 
   def receive = {
-    case p: BusSubscribe => {
 
-      log.info("subscribe " + p)
-
-      MqttTopicClassificator.checkTopicName(p.topic)
-
-      context become working(List((p.topic, p.actor)))
-    }
-    case p: BusUnsubscribe => {
-      log.info("got " + p + " but there are no subscriptions")
-    }
-    case p: BusPublish => {
-      log.info("got " + p + " but there are no subscriptions")
+    case x => {
+      log.info("It was unexcepted " + x)
     }
   }
 }

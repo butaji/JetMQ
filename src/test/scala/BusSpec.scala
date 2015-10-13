@@ -68,7 +68,6 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       bus ! BusSubscribe("#", self)
       bus ! BusPublish("sport", "2")
       expectMsg("2")
-      expectMsg("2")
 
       expectNoMsg()
       success
@@ -200,6 +199,29 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       expectMsg("2")
 
       success
+    }
+
+    "retain message should be stored in a topic" in {
+      val bus = system.actorOf(Props[EventBusActor])
+
+      bus ! BusSubscribe("game/score", self)
+      expectNoMsg()
+
+      bus ! BusUnsubscribe("game/score", self)
+
+      bus ! BusPublish("game/score", "1", true)
+
+      bus ! BusSubscribe("game/score", self)
+      expectMsg("1")
+
+      bus ! BusPublish("game/score", "2", true)
+
+      bus ! BusSubscribe("#", self)
+      expectMsg("2")
+      expectMsg("2")
+
+      success
+
     }
   }
 }

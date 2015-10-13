@@ -8,8 +8,8 @@ import org.specs2.specification.Scope
 
 class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with SpecificationLike with Scope {
 
-  //sequential //slower, but in order (tests can be state dependant)
-  isolated //faster, but without order
+  sequential //slower, but in order (tests can be state dependant)
+  //isolated //faster, but without order
 
   "Requests handler actor" should {
 

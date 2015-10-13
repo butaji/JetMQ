@@ -60,7 +60,7 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
 
           }
 
-          eventBus ! BusPublish(p.topic, PublishPayload(p))
+          eventBus ! BusPublish(p.topic, PublishPayload(p), p.header.retain)
         }
         case p: Pubrec => {
           val back = Pubrel(Header(false, 0, false), p.message_identifier)
@@ -75,6 +75,12 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
           log.info("sending back " + back)
 
           connection ! Codec[Packet].encode(back).toTcpWrite
+        }
+        case p: Puback => {
+          log.info("doing nothing for received " + p)
+        }
+        case p: Pubcomp => {
+          log.info("doing nothing for received " + p)
         }
         case p : Unsubscribe => {
           p.topics.foreach(t =>
@@ -95,7 +101,7 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
         }
 
         case x => {
-          log.info("Unexpected message for connected" + x)
+          log.info("Unexpected message for connected " + x)
 
           context stop self
         }
