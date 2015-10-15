@@ -2,14 +2,13 @@ package net.jetmq.broker
 
 import akka.actor.{Actor, ActorRef}
 import akka.event.Logging
-import net.jetmq.packets.Publish
 
 case class BusSubscribe(topic: String, actor: ActorRef)
 case class BusUnsubscribe(topic: String, actor: ActorRef)
 
 case class BusPublish(topic: String, payload: Any, retain: Boolean = false)
 
-case class PublishPayload(payload: Publish)
+case class PublishPayload(payload: Any, auto: Boolean)
 
 class EventBusActor extends Actor {
 
@@ -31,7 +30,8 @@ class EventBusActor extends Actor {
       retains
         .filter(t => MqttTopicClassificator.isSubclass(t._1, p.topic))
         .foreach(t => {
-          p.actor ! t._2
+
+          p.actor ! PublishPayload(t._2, true)
         })
     }
     case p: BusUnsubscribe => {
@@ -46,7 +46,7 @@ class EventBusActor extends Actor {
         .map(t => (t._1, t._2.toArray ))
         .foreach(t => {
           log.info("publish " + p + " by subscriptions " + t._2)
-          t._1 ! p.payload
+          t._1 ! PublishPayload(p.payload, false)
         })
 
       if (p.retain == true) {
@@ -93,7 +93,7 @@ object MqttTopicClassificator {
     val square_index = subscribing.indexOf('#')
 
     if (square_index > 0) {
-      val sub = subscribing.substring(0, square_index - 1) + ".*"
+      val sub = if (square_index > 1) subscribing.substring(0, square_index - 1) + ".*" else "/.*"
 
       return isRegexSubclass(actual, sub)
     }

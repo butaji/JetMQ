@@ -60,7 +60,7 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
 
           }
 
-          eventBus ! BusPublish(p.topic, PublishPayload(p), p.header.retain)
+          eventBus ! BusPublish(p.topic, p, p.header.retain)
         }
         case p: Pubrec => {
           val back = Pubrel(Header(false, 0, false), p.message_identifier)
@@ -107,14 +107,17 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
         }
       }
     }
-    case PublishPayload(p) => {
+    case x:PublishPayload => {
 
-      val back = Publish(p.header, p.topic, p.message_identifier, p.payload)
+      x.payload match {
+        case p: Publish => {
+          val back = Publish(Header(p.header.dup, p.header.qos, x.auto), p.topic, p.message_identifier, p.payload)
 
-      log.info("sending back " + back)
+          log.info("sending back " + back)
 
-      connection ! Codec[Packet].encode(back).toTcpWrite
-
+          connection ! Codec[Packet].encode(back).toTcpWrite
+        }
+      }
     }
 
     case x => {

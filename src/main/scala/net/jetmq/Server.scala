@@ -5,10 +5,10 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, Props}
 import akka.event.Logging
 import akka.io.{IO, Tcp}
+import Tcp._
 
 class Server extends Actor {
 
-  import Tcp._
   import context.system
 
   val log = Logging.getLogger(context.system, this)
