@@ -11,6 +11,7 @@ class Server extends Actor {
 
   import context.system
 
+  val bus = system.actorOf(Props[EventBusActor], name = "event-bus")
   val log = Logging.getLogger(context.system, this)
 
   IO(Tcp) ! Bind(self, new InetSocketAddress("localhost", 1883))
@@ -30,7 +31,6 @@ class Server extends Actor {
 
       log.info("client connected " + remote)
 
-      val bus = system.actorOf(Props[EventBusActor])
       val handler = system.actorOf(Props(new RequestsHandler(bus)))
       val connection = sender()
       connection ! Register(handler)
