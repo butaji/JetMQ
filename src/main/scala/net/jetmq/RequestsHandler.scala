@@ -12,13 +12,13 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
 
   val log = Logging.getLogger(context.system, this)
 
-  def connected(connection: ActorRef):Receive = {
+  def connected(connection: ActorRef, message_id: Int):Receive = {
     case Received(data) => {
-      log.info("received data from " + connection + ": " + data.map("%02X" format _).mkString)
+      //log.info("[c] received data from " + connection + ": " + data.map("%02X" format _).mkString)
 
       val packet = Codec[Packet].decode(data.toArray.toBitVector).require.value
 
-      log.info("received " + packet)
+      log.info("-> " + packet)
 
       packet match {
         case p: Connect => {
@@ -33,11 +33,11 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
         }
         case p: Subscribe => {
           p.topics.foreach(t =>
-            eventBus ! BusSubscribe(t._1, self))
+            eventBus ! BusSubscribe(t._1, self, t._2))
 
           val back = Suback(Header(false, 0, false), p.message_identifier, p.topics.map(x => x._2))
 
-          log.info("sending back " + back)
+          log.info("<- " + back)
 
           connection ! Codec[Packet].encode(back).toTcpWrite
         }
@@ -46,7 +46,7 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
           if (p.header.qos == 1) {
             val back = Puback(Header(false, 0, false), p.message_identifier)
 
-            log.info("sending back " + back)
+            log.info("<- " + back)
 
             connection ! Codec[Packet].encode(back).toTcpWrite
           }
@@ -54,7 +54,7 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
           if (p.header.qos == 2) {
             val back = Pubrec(Header(false, 0, false), p.message_identifier)
 
-            log.info("sending back " + back)
+            log.info("<- " + back)
 
             connection ! Codec[Packet].encode(back).toTcpWrite
 
@@ -63,16 +63,16 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
           eventBus ! BusPublish(p.topic, p, p.header.retain)
         }
         case p: Pubrec => {
-          val back = Pubrel(Header(false, 0, false), p.message_identifier)
+          val back = Pubrel(Header(false, 1, false), p.message_identifier)
 
-          log.info("sending back " + back)
+          log.info("<- " + back)
 
           connection ! Codec[Packet].encode(back).toTcpWrite
         }
         case p: Pubrel => {
           val back = Pubcomp(Header(false, 0, false), p.message_identifier)
 
-          log.info("sending back " + back)
+          log.info("<- " + back)
 
           connection ! Codec[Packet].encode(back).toTcpWrite
         }
@@ -88,14 +88,14 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
 
           val back = Unsuback(Header(false, 0, false), p.message_identifier)
 
-          log.info("sending back " + back)
+          log.info("<- " + back)
 
           connection ! Codec[Packet].encode(back).toTcpWrite
         }
         case p: Pingreq => {
           val back = Pingresp(Header(false, 0, false))
 
-          log.info("sending back " + back)
+          log.info("<- " + back)
 
           connection ! Codec[Packet].encode(back).toTcpWrite
         }
@@ -111,11 +111,16 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
 
       x.payload match {
         case p: Publish => {
-          val back = Publish(Header(p.header.dup, p.header.qos, x.auto), p.topic, p.message_identifier, p.payload)
+          val qos = p.header.qos min x.qos
+          val back = Publish(Header(p.header.dup, qos, x.auto), p.topic, message_id, p.payload)
 
-          log.info("sending back " + back)
+          log.info("<- " + back)
 
           connection ! Codec[Packet].encode(back).toTcpWrite
+
+          if (qos > 0) {
+            context become connected(connection, message_id + 1)
+          }
         }
       }
     }
@@ -136,7 +141,7 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
 
       val packet = Codec[Packet].decode(data.toArray.toBitVector).require.value
 
-      log.info("received " + packet)
+      log.info("-> " + packet)
 
       packet match {
         case p: Connect => {
@@ -144,12 +149,12 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
 
           val back = Connack(Header(false, 0, false), result)
 
-          log.info("sending back " + back)
+          log.info("<- " + back)
 
           sender() ! Codec[Packet].encode(back).toTcpWrite
 
           if (result == 0) {
-            context become connected(sender())
+            context become connected(sender(), 1)
           }
         }
         case x => {

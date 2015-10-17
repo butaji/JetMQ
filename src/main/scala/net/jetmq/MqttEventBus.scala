@@ -3,12 +3,12 @@ package net.jetmq.broker
 import akka.actor.{Actor, ActorRef}
 import akka.event.Logging
 
-case class BusSubscribe(topic: String, actor: ActorRef)
+case class BusSubscribe(topic: String, actor: ActorRef, qos: Int = 0)
 case class BusUnsubscribe(topic: String, actor: ActorRef)
 
 case class BusPublish(topic: String, payload: Any, retain: Boolean = false)
 
-case class PublishPayload(payload: Any, auto: Boolean)
+case class PublishPayload(payload: Any, auto: Boolean, qos: Int = 0)
 
 class EventBusActor extends Actor {
 
@@ -16,22 +16,23 @@ class EventBusActor extends Actor {
 
   context become working(List(), List())
 
-  def working(subscriptions: List[(String, ActorRef)], retains: List[(String, Any)]): Receive = {
+  def working(subscriptions: List[(String, ActorRef, Int)], retains: List[(String, Any)]): Receive = {
     case p: BusSubscribe => {
       log.info("subscribe " + p)
       MqttTopicClassificator.checkTopicName(p.topic)
 
       if (!subscriptions.exists(t => (t._1 == p.topic) && (t._2 == p.actor))) {
-        context become working((p.topic, p.actor) :: subscriptions, retains)
+        context become working((p.topic, p.actor, p.qos) :: subscriptions, retains)
       } else {
         log.info("subscription already exists " + p)
       }
 
       retains
+        .sortBy(t => t._1)
         .filter(t => MqttTopicClassificator.isSubclass(t._1, p.topic))
         .foreach(t => {
 
-          p.actor ! PublishPayload(t._2, true)
+          p.actor ! PublishPayload(t._2, true, p.qos)
         })
     }
     case p: BusUnsubscribe => {
@@ -45,8 +46,9 @@ class EventBusActor extends Actor {
         .groupBy(t => t._2)
         .map(t => (t._1, t._2.toArray ))
         .foreach(t => {
-          log.info("publish " + p + " by subscriptions " + t._2)
-          t._1 ! PublishPayload(p.payload, false)
+          log.info("publish " + p + " by subscriptions: " + t._2.map(x => x._1).mkString(", "))
+          val max_qos = t._2.map(x => x._3).reduceLeft(_ max _)
+          t._1 ! PublishPayload(p.payload, false, max_qos)
         })
 
       if (p.retain == true) {
