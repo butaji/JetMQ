@@ -21,10 +21,19 @@ class EventBusActor extends Actor {
       log.info("subscribe " + p)
       MqttTopicClassificator.checkTopicName(p.topic)
 
-      if (!subscriptions.exists(t => (t._1 == p.topic) && (t._2 == p.actor))) {
+      val similar = subscriptions.filter(t => (t._1 == p.topic) && (t._2 == p.actor)).toArray
+      if (similar.length == 0) {
         context become working((p.topic, p.actor, p.qos) :: subscriptions, retains)
+
+        log.info("subscribed to " + p.topic)
       } else {
         log.info("subscription already exists " + p)
+
+        if (similar.map(x => x._3).reduceLeft(_ max _) < p.qos) {
+          log.info("upgrading existing subscription to qos " + p.qos)
+
+          context become working((p.topic, p.actor, p.qos) :: subscriptions.filter(t => !(t._1 == p.topic && t._2 == p.actor)), retains)
+        }
       }
 
       retains
@@ -41,12 +50,15 @@ class EventBusActor extends Actor {
     }
     case p: BusPublish => {
 
+      log.info("got " + p)
+      log.info("current subscriptions " + subscriptions.map(t => t._1 + "@" + t._3).mkString(", "))
+
       subscriptions
         .filter(t => MqttTopicClassificator.isSubclass(p.topic, t._1))
         .groupBy(t => t._2)
         .map(t => (t._1, t._2.toArray ))
         .foreach(t => {
-          log.info("publish " + p + " by subscriptions: " + t._2.map(x => x._1).mkString(", "))
+          log.info("publish " + p + " by subscriptions: " + t._2.map(x => x._1 + "@" + x._3).mkString(", "))
           val max_qos = t._2.map(x => x._3).reduceLeft(_ max _)
           t._1 ! PublishPayload(p.payload, false, max_qos)
         })

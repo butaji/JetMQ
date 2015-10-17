@@ -112,7 +112,7 @@ class RequestsHandler(eventBus: ActorRef) extends Actor {
       x.payload match {
         case p: Publish => {
           val qos = p.header.qos min x.qos
-          val back = Publish(Header(p.header.dup, qos, x.auto), p.topic, message_id, p.payload)
+          val back = Publish(Header(p.header.dup, qos, x.auto), p.topic, if (qos == 0) 0 else message_id, p.payload)
 
           log.info("<- " + back)
 
