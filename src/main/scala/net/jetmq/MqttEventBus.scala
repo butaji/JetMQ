@@ -8,6 +8,8 @@ case class BusUnsubscribe(topic: String, actor: ActorRef)
 
 case class BusPublish(topic: String, payload: Any, retain: Boolean = false)
 
+case class BusDeattach(actor: ActorRef)
+
 case class PublishPayload(payload: Any, auto: Boolean, qos: Int = 0)
 
 class EventBusActor extends Actor {
@@ -29,11 +31,9 @@ class EventBusActor extends Actor {
       } else {
         log.info("subscription already exists " + p)
 
-        if (similar.map(x => x._3).reduceLeft(_ max _) < p.qos) {
-          log.info("upgrading existing subscription to qos " + p.qos)
+          log.info("changing existing subscription qos to " + p.qos)
 
           context become working((p.topic, p.actor, p.qos) :: subscriptions.filter(t => !(t._1 == p.topic && t._2 == p.actor)), retains)
-        }
       }
 
       retains
@@ -47,6 +47,11 @@ class EventBusActor extends Actor {
     case p: BusUnsubscribe => {
       log.info("unsubscribe " + p)
       context become working(subscriptions.filter(t => !(t._1 == p.topic && t._2 == p.actor)), retains)
+    }
+
+    case p: BusDeattach => {
+      log.info("clearing bus for " + p)
+      context become working(subscriptions.filter(t => t._2 == p.actor), retains)
     }
     case p: BusPublish => {
 
@@ -73,7 +78,7 @@ class EventBusActor extends Actor {
   def receive = {
 
     case x => {
-      log.info("It was unexcepted " + x)
+      log.error("It was unexcepted " + x)
     }
   }
 }

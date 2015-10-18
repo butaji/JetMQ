@@ -15,10 +15,10 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
   "Requests handler actor" should {
 
     def create_actor() = {
-      val bus = system.actorOf(Props[EventBusActor])
-      val devices = system.actorOf(Props(new DevicesActor(bus)))
-      val coder = system.actorOf(Props[PacketsActor])
-      system.actorOf(Props(new RequestsHandlerActor(devices, coder)))
+      val bus = system.actorOf(Props[EventBusActor], "bus")
+      val devices = system.actorOf(Props(new DevicesActor(bus)), "devices")
+      val coder = system.actorOf(Props[PacketsActor], "coder")
+      system.actorOf(Props(new ConnectionActor(devices, coder)), "device")
     }
 
     "Scenario #52118" in {

@@ -1,23 +1,21 @@
 package net.jetmq.broker
 
-import akka.actor.Stash
 import akka.actor.{Actor, ActorRef}
 import akka.event.Logging
 import akka.io.Tcp.{PeerClosed, Received}
-import net.jetmq.DeviceConnected
 import net.jetmq.Helpers._
-import net.jetmq.packets.{Packet, Connect}
+import net.jetmq.packets.{Header, Disconnect, Packet}
 
 
-class RequestsHandlerActor(devices: ActorRef, coder: ActorRef) extends Actor with Stash {
+class ConnectionActor(devices: ActorRef, coder: ActorRef) extends Actor {
 
   val log = Logging.getLogger(context.system, this)
 
-  def connected(device: ActorRef, connection: ActorRef): Receive = {
+  def connected(connection: ActorRef): Receive = {
     case Decoded(p) => {
 
       log.info("-> " + p)
-      device ! p
+      devices ! p
     }
     case Encoded(p) => {
       connection ! p
@@ -32,31 +30,15 @@ class RequestsHandlerActor(devices: ActorRef, coder: ActorRef) extends Actor wit
     case PeerClosed => {
       log.info("peer closed")
 
+      devices ! Disconnect(Header(false, 0, false))
       context stop self
     }
 
     case x => {
-      log.info("Unexpected message for connected " + x)
+      log.error("Unexpected message for connected " + x)
 
+      devices ! Disconnect(Header(false, 0, false))
       context stop self
-    }
-  }
-
-
-  def online(connection: ActorRef): Receive = {
-    case DeviceConnected(d) => {
-
-      unstashAll()
-      context become connected(d, connection)
-    }
-
-    case Decoded(p: Connect) => {
-      devices ! p
-    }
-
-    case x => {
-      log.info("stashing " + x)
-      stash()
     }
   }
 
@@ -64,7 +46,7 @@ class RequestsHandlerActor(devices: ActorRef, coder: ActorRef) extends Actor wit
 
     case Received(data) => {
 
-      context become online(sender)
+      context become connected(sender)
 
       log.info("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
 
@@ -74,12 +56,14 @@ class RequestsHandlerActor(devices: ActorRef, coder: ActorRef) extends Actor wit
     case PeerClosed => {
       log.info("peer closed")
 
+      devices ! Disconnect(Header(false, 0, false))
       context stop self
     }
 
     case x => {
-      log.info("Unexpected message for unconnected " + x)
+      log.error("Unexpected message for unconnected " + x)
 
+      devices ! Disconnect(Header(false, 0, false))
       context stop self
     }
   }

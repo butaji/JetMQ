@@ -1,12 +1,11 @@
 package net.jetmq
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{ActorRef, Actor}
 import akka.event.Logging
-import akka.io.Tcp.PeerClosed
-import net.jetmq.broker.{BusPublish, BusSubscribe, BusUnsubscribe, PublishPayload}
+import net.jetmq.broker.{PublishPayload, BusUnsubscribe, BusPublish, BusSubscribe}
 import net.jetmq.packets._
 
-class DeviceActor(event_bus: ActorRef) extends Actor {
+class DeviceActor(bus: ActorRef) extends Actor {
 
   val log = Logging.getLogger(context.system, this)
 
@@ -14,62 +13,45 @@ class DeviceActor(event_bus: ActorRef) extends Actor {
 
   def receive = ???
 
-  def establishConnection(connection: ActorRef, p: Connect, message_id: Int) = {
+  def receive(message_id: Int):Receive = {
 
-    val result = if (p.client_id.length == 0 && p.connect_flags.clean_session == false) 2 else 0
-
-    connection ! Connack(Header(false, 0, false), result)
-
-    if (result == 0) {
-      context become connected(connection, message_id)
-    }
-  }
-
-  def receive(message_id: Int): Receive = {
-
-    case EstablishConnection(connection, p) => {
-
-      establishConnection(connection, p, message_id)
-    }
-    case x => {
-      log.info("unexpected " + x)
-    }
-  }
-
-  def connected(connection: ActorRef, message_id: Int): Receive = {
     case p: Connect => {
-      log.info("Already connected")
+      val result = if (p.client_id.length == 0 && p.connect_flags.clean_session == false) 2 else 0
 
-      connection ! PeerClosed
+      sender ! Connack(Header(false, 0, false), result)
+
+      if (result == 0) {
+        context.parent ! DeviceConnection(p.client_id, self, sender)
+        context become receive(message_id)
+      }
     }
     case p: Disconnect => {
       log.info("Disconnect")
 
-      context become receive(message_id)
+      context stop self
     }
     case p: Subscribe => {
-      p.topics.foreach(t =>
-        event_bus ! BusSubscribe(t._1, self, t._2))
+      p.topics.foreach(t => bus ! BusSubscribe(t._1, self, t._2))
 
-      connection ! Suback(Header(false, 0, false), p.message_identifier, p.topics.map(x => x._2))
+      sender ! Suback(Header(false, 0, false), p.message_identifier, p.topics.map(x => x._2))
     }
     case p: Publish => {
 
       if (p.header.qos == 1) {
-        connection ! Puback(Header(false, 0, false), p.message_identifier)
+        sender ! Puback(Header(false, 0, false), p.message_identifier)
       }
 
       if (p.header.qos == 2) {
-        connection ! Pubrec(Header(false, 0, false), p.message_identifier)
+        sender ! Pubrec(Header(false, 0, false), p.message_identifier)
       }
 
-      event_bus ! BusPublish(p.topic, p, p.header.retain)
+      bus ! BusPublish(p.topic, p, p.header.retain)
     }
     case p: Pubrec => {
-      connection ! Pubrel(Header(false, 1, false), p.message_identifier)
+      sender ! Pubrel(Header(false, 1, false), p.message_identifier)
     }
     case p: Pubrel => {
-      connection ! Pubcomp(Header(false, 0, false), p.message_identifier)
+      sender ! Pubcomp(Header(false, 0, false), p.message_identifier)
     }
     case p: Puback => {
       log.info("doing nothing for received " + p)
@@ -78,13 +60,13 @@ class DeviceActor(event_bus: ActorRef) extends Actor {
       log.info("doing nothing for received " + p)
     }
     case p: Unsubscribe => {
-      p.topics.foreach(t =>
-        event_bus ! BusUnsubscribe(t, self))
 
-      connection ! Unsuback(Header(false, 0, false), p.message_identifier)
+      p.topics.foreach(t => bus ! BusUnsubscribe(t, self))
+
+      sender ! Unsuback(Header(false, 0, false), p.message_identifier)
     }
     case p: Pingreq => {
-      connection ! Pingresp(Header(false, 0, false))
+      sender ! Pingresp(Header(false, 0, false))
     }
 
     case x: PublishPayload => {
@@ -92,24 +74,19 @@ class DeviceActor(event_bus: ActorRef) extends Actor {
       x.payload match {
         case p: Publish => {
           val qos = p.header.qos min x.qos
-          connection ! Publish(Header(p.header.dup, qos, x.auto), p.topic, if (qos == 0) 0 else message_id, p.payload)
+
+          val publish = Publish(Header(p.header.dup, qos, x.auto), p.topic, if (qos == 0) 0 else message_id, p.payload)
+          context.parent ! PublishPayload(publish, x.auto, x.qos)
 
           if (qos > 0) {
-            context become connected(connection, message_id + 1)
+            context become receive(message_id + 1)
           }
         }
       }
     }
-    case EstablishConnection(c, p) => {
 
-      if (c == connection) {
-        connection ! PeerClosed
-      } else {
-        establishConnection(c, p, message_id)
-      }
-    }
     case x => {
-      log.info("Unexpected message for connected " + x)
+      log.error("unexpected message for connected " + x)
     }
   }
 }
