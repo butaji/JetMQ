@@ -80,7 +80,7 @@ object Codecs {
   val byte_padding = constant(bin"00000000")
   val connect_flags_prefix = constant(hex"00044d51545404".bits)
   val qos = uint2
-  val return_code = uint8
+  val return_code = uint16
   val message_id = uint16
   val keep_alive = uint16
 
@@ -107,11 +107,7 @@ object Connect {
 
 object Connack {
   implicit val discriminator: Discriminator[Packet, Connack, Int] = Discriminator(2)
-  implicit val codec: Codec[Connack] = (
-    Header.codec ::
-      variableSizeBytes(Codecs.remaining,
-        Codecs.byte_padding :~>: Codecs.return_code)
-    ).as[Connack]
+  implicit val codec: Codec[Connack] = (Header.codec :: variableSizeBytes(Codecs.remaining, Codecs.return_code)).as[Connack]
 }
 
 object Publish {

@@ -6,10 +6,11 @@ import java.util.UUID
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 import akka.io.Tcp.PeerClosed
-import net.jetmq.broker.{BusDeattach, PublishPayload}
+import net.jetmq.broker.PublishPayload
 import net.jetmq.packets._
 
 private case class DeviceConnection(name: String, device: ActorRef, connection: ActorRef)
+case class EstablishConnection(connect: Connect, persisted: Boolean)
 
 class DevicesActor(bus: ActorRef) extends Actor {
 
@@ -44,7 +45,8 @@ class DevicesActor(bus: ActorRef) extends Actor {
       } else {
         val device = getOrCreate(name)
 
-        device forward p
+        log.info("connections are " + connections)
+        device forward EstablishConnection(p, connections.count(t => t.name == name) > 0)
       }
     }
 
@@ -60,7 +62,6 @@ class DevicesActor(bus: ActorRef) extends Actor {
         .map(t => t.device)
         .foreach(t => {
           t forward p
-          bus ! BusDeattach(t)
         })
     }
 

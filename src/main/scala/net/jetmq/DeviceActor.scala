@@ -15,12 +15,13 @@ class DeviceActor(bus: ActorRef) extends Actor {
 
   def receive(message_id: Int):Receive = {
 
-    case p: Connect => {
-      val result = if (p.client_id.length == 0 && p.connect_flags.clean_session == false) 2 else 0
+    case EstablishConnection(p, persisted) => {
+      val status = if (p.client_id.length == 0 && p.connect_flags.clean_session == false) 2 else 0
+      val result = if (p.connect_flags.clean_session == false && persisted == true && status == 0) status + 256 else status
 
       sender ! Connack(Header(false, 0, false), result)
 
-      if (result == 0) {
+      if (status == 0) {
         context.parent ! DeviceConnection(p.client_id, self, sender)
         context become receive(message_id)
       }
@@ -28,7 +29,7 @@ class DeviceActor(bus: ActorRef) extends Actor {
     case p: Disconnect => {
       log.info("Disconnect")
 
-      context stop self
+      context become receive(1)
     }
     case p: Subscribe => {
       p.topics.foreach(t => bus ! BusSubscribe(t._1, self, t._2))
