@@ -6,7 +6,7 @@ import akka.actor.{Actor, Props}
 import akka.event.Logging
 import akka.io.Tcp._
 import akka.io.{IO, Tcp}
-import net.jetmq.{CoderActor, DevicesActor}
+import net.jetmq._
 
 class ServerActor extends Actor {
 
@@ -14,6 +14,8 @@ class ServerActor extends Actor {
 
   val bus = system.actorOf(Props[EventBusActor], name = "event-bus")
   val devices = system.actorOf(Props(new DevicesActor(bus)), name = "devices")
+  val coder = system.actorOf(Props[PacketsActor], "coder")
+
   val log = Logging.getLogger(context.system, this)
 
   IO(Tcp) ! Bind(self, new InetSocketAddress("localhost", 1883))
@@ -33,7 +35,6 @@ class ServerActor extends Actor {
 
       log.info("client connected " + remote)
 
-      var coder = system.actorOf(Props[CoderActor])
       val handler = system.actorOf(Props(new RequestsHandlerActor(devices, coder)))
       val connection = sender()
       connection ! Register(handler)
