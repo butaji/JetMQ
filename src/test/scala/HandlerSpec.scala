@@ -3,6 +3,7 @@ package net.jetmq.broker
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
 import net.jetmq.Helpers._
+import net.jetmq.{DevicesActor, CoderActor, DeviceActor}
 import org.specs2.mutable._
 import org.specs2.specification.Scope
 
@@ -15,7 +16,9 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
 
     def create_actor() = {
       val bus = system.actorOf(Props[EventBusActor])
-      system.actorOf(Props(new RequestsHandler(bus)))
+      val devices = system.actorOf(Props(new DevicesActor(bus)))
+      val coder = system.actorOf(Props[CoderActor])
+      system.actorOf(Props(new RequestsHandlerActor(devices, coder)))
     }
 
     "Scenario #52118" in {

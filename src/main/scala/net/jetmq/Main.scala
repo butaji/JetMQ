@@ -2,15 +2,14 @@ package net.jetmq.broker
 
 import akka.actor.{ActorSystem, Props}
 import akka.event.Logging
+import com.typesafe.config.ConfigFactory
 
-/**
- * Created by vitalybaum on 04/10/15.
- */
 object Main extends App {
 
-  implicit val system = ActorSystem("first-run")
+  val config = ConfigFactory.load
+  implicit val system = ActorSystem("jetmq", config.getConfig("akka"))
 
-  val server = system.actorOf(Props[Server], "server")
+  val server = system.actorOf(Props[ServerActor], "server")
 
   val log = Logging.getLogger(system, this)
   log.info("started...")

@@ -27,7 +27,7 @@ case class Connack(header: Header, return_code: Int) extends Packet
 
 case class Connect(header: Header,
                    connect_flags: ConnectFlags,
-                   clientId: String,
+                   client_id: String,
                    topic: Option[String] = None,
                    message: Option[String] = None,
                    user: Option[String] = None,
