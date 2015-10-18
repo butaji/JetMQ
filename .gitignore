@@ -9,8 +9,7 @@ test-output
 tmp
 .history
 dist
-/.idea
-.idea
+**/.idea
 /*.iml
 /out
 /.idea_modules
