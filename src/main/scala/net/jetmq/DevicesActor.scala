@@ -53,6 +53,8 @@ class DevicesActor(bus: ActorRef) extends Actor {
     }
 
     case p: Disconnect => {
+      context become receive(connections.filter(t => t.connection == sender))
+
       connections
         .filter(t => t.connection == sender)
         .map(t => t.device)
@@ -60,10 +62,6 @@ class DevicesActor(bus: ActorRef) extends Actor {
           t forward p
           bus ! BusDeattach(t)
         })
-
-      context become receive(connections.filter(t => t.connection == sender))
-
-      sender ! PeerClosed
     }
 
     case p: Packet => {

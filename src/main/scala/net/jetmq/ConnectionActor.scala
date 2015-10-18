@@ -13,6 +13,14 @@ class ConnectionActor(devices: ActorRef, coder: ActorRef) extends Actor {
 
   def connected(connection: ActorRef): Receive = {
     case Decoded(p) => {
+      p match {
+        case _: Disconnect => {
+          log.info("Disconnect. Peer closed")
+
+          context stop self
+        }
+        case _ => {}
+      }
 
       log.info("-> " + p)
       devices ! p
@@ -29,6 +37,13 @@ class ConnectionActor(devices: ActorRef, coder: ActorRef) extends Actor {
     }
     case PeerClosed => {
       log.info("peer closed")
+
+      devices ! Disconnect(Header(false, 0, false))
+      context stop self
+    }
+
+    case p:DecodingError => {
+      log.error(p.exception, "closing connection")
 
       devices ! Disconnect(Header(false, 0, false))
       context stop self
