@@ -29,7 +29,8 @@ class DeviceActor(bus: ActorRef) extends Actor {
     case p: Disconnect => {
       log.info("Disconnect")
 
-      context become receive(1)
+//      context become receive(1)
+      context stop self
     }
     case p: Subscribe => {
       p.topics.foreach(t => bus ! BusSubscribe(t._1, self, t._2))

@@ -3,8 +3,9 @@ package net.jetmq.broker
 import akka.actor.{Actor, ActorRef}
 import akka.event.Logging
 import akka.io.Tcp.{PeerClosed, Received}
+import net.jetmq.ConnectionLost
 import net.jetmq.Helpers._
-import net.jetmq.packets.{Header, Disconnect, Packet}
+import net.jetmq.packets.{Disconnect, Header, Packet}
 
 
 class ConnectionActor(devices: ActorRef, coder: ActorRef) extends Actor {
@@ -13,15 +14,6 @@ class ConnectionActor(devices: ActorRef, coder: ActorRef) extends Actor {
 
   def connected(connection: ActorRef): Receive = {
     case Decoded(p) => {
-      p match {
-        case _: Disconnect => {
-          log.info("Disconnect. Peer closed")
-
-          context stop self
-        }
-        case _ => {}
-      }
-
       log.info("-> " + p)
       devices ! p
     }
@@ -33,12 +25,21 @@ class ConnectionActor(devices: ActorRef, coder: ActorRef) extends Actor {
       coder ! p
     }
     case Received(data) => {
-      coder ! data.toArray.toBitVector
+
+      val bits = data.toArray.toBitVector
+      if (bits == "e000".toBin.toBitVector) {
+        log.info("Disconnect. Peer closed")
+
+        devices ! Disconnect(Header(false, 0, false))
+        context stop self
+      }
+
+      coder ! bits
     }
     case PeerClosed => {
       log.info("peer closed")
 
-      devices ! Disconnect(Header(false, 0, false))
+      devices ! ConnectionLost()
       context stop self
     }
 
@@ -71,7 +72,7 @@ class ConnectionActor(devices: ActorRef, coder: ActorRef) extends Actor {
     case PeerClosed => {
       log.info("peer closed")
 
-      devices ! Disconnect(Header(false, 0, false))
+      devices ! ConnectionLost()
       context stop self
     }
 

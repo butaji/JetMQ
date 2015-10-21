@@ -9,7 +9,7 @@ import org.specs2.specification.Scope
 
 class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with SpecificationLike with Scope {
 
-  sequential
+  sequential //state dependant
 
   "Requests handler actor" should {
 
@@ -167,6 +167,7 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "310a0008546f706963412f42".toTcpReceived //PUBLISH
+
       h ! "330b0007546f7069632f430008".toTcpReceived //PUBLISH
       expectMsg("40020008".toTcpWrite) //PUBACK
 

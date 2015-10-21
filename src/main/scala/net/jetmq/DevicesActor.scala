@@ -6,11 +6,12 @@ import java.util.UUID
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 import akka.io.Tcp.PeerClosed
-import net.jetmq.broker.PublishPayload
+import net.jetmq.broker.{BusDeattach, PublishPayload}
 import net.jetmq.packets._
 
 private case class DeviceConnection(name: String, device: ActorRef, connection: ActorRef)
 case class EstablishConnection(connect: Connect, persisted: Boolean)
+case class ConnectionLost()
 
 class DevicesActor(bus: ActorRef) extends Actor {
 
@@ -54,24 +55,28 @@ class DevicesActor(bus: ActorRef) extends Actor {
       context become receive(p :: connections.filter(t => t.name != p.name))
     }
 
-    case p: Disconnect => {
-      context become receive(connections.filter(t => t.connection == sender))
+    case p: ConnectionLost => {
+      context become receive(connections.filter(t => t.connection != sender))
+    }
 
-      connections
-        .filter(t => t.connection == sender)
+    case p: Disconnect => {
+
+      context become receive(connections.filter(t => t.connection != sender))
+
+      connections.filter(t => t.connection == sender)
         .map(t => t.device)
         .foreach(t => {
           t forward p
+          bus ! BusDeattach(t)
         })
     }
 
     case p: Packet => {
 
-      val filtered = connections.filter(t => t.connection == sender).map(t => t.device).toArray
+      val connected = connections.filter(t => t.connection == sender).map(t => t.device).toArray
 
-      if (filtered.length == 1) {
-        filtered.foreach(t =>
-          t forward p)
+      if (connected.length == 1) {
+        connected.foreach(t => t forward p)
       } else {
         sender ! PeerClosed
       }
