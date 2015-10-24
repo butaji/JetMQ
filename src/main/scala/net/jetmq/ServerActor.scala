@@ -6,7 +6,7 @@ import akka.actor.{Actor, Props}
 import akka.event.Logging
 import akka.io.Tcp._
 import akka.io.{IO, Tcp}
-import net.jetmq._
+import net.jetmq.SessionsManagerActor
 
 class ServerActor extends Actor {
 
