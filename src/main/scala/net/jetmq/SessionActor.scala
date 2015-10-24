@@ -5,7 +5,7 @@ import akka.event.Logging
 import net.jetmq.broker.{PublishPayload, BusUnsubscribe, BusPublish, BusSubscribe}
 import net.jetmq.packets._
 
-class DeviceActor(bus: ActorRef) extends Actor {
+class SessionActor(bus: ActorRef) extends Actor {
 
   val log = Logging.getLogger(context.system, this)
 
@@ -29,7 +29,6 @@ class DeviceActor(bus: ActorRef) extends Actor {
     case p: Disconnect => {
       log.info("Disconnect")
 
-//      context become receive(1)
       context stop self
     }
     case p: Subscribe => {

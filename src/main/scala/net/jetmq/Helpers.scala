@@ -12,6 +12,10 @@ object Helpers {
     def toTcpWrite(): Tcp.Write = {
       a.require.toByteArray.toTcpWrite
     }
+
+    def toTcpReceived(): Tcp.Received ={
+      a.require.toByteArray.toTcpReceived
+    }
   }
 
 
@@ -53,5 +57,6 @@ object Helpers {
     }
 
   }
+
 
 }

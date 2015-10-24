@@ -2,7 +2,7 @@ package net.jetmq.broker
 
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
-import net.jetmq.DevicesActor
+import net.jetmq.SessionsManagerActor
 import net.jetmq.Helpers._
 import org.specs2.mutable._
 import org.specs2.specification.Scope
@@ -15,7 +15,7 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
 
     def create_actor() = {
       val bus = system.actorOf(Props[EventBusActor], "bus")
-      val devices = system.actorOf(Props(new DevicesActor(bus)), "devices")
+      val devices = system.actorOf(Props(new SessionsManagerActor(bus)), "devices")
       val coder = system.actorOf(Props[PacketsActor], "coder")
       system.actorOf(Props(new ConnectionActor(devices, coder)), "device")
     }

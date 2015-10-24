@@ -13,7 +13,7 @@ class ServerActor extends Actor {
   import context.system
 
   val bus = system.actorOf(Props[EventBusActor], name = "event-bus")
-  val devices = system.actorOf(Props(new DevicesActor(bus)), name = "devices")
+  val devices = system.actorOf(Props(new SessionsManagerActor(bus)), name = "devices")
 
   val log = Logging.getLogger(context.system, this)
 
