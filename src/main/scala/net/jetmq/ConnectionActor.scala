@@ -40,8 +40,10 @@ class ConnectionActor(devices: ActorRef, coder: ActorRef) extends FSM[Connection
       stay
     }
 
-    case Event(Received(data), _) if (data.toArray.toBitVector == "e000".toBin.toBitVector) => {
+    case Event(Received(data), bag: ConnectionSessionBag) if (data.toArray.toBitVector == "e000".toBin.toBitVector) => {
       log.info("Disconnect. Closing peer")
+
+      bag.session ! Disconnect(Header(false,0,false))
 
       context stop self
       stay

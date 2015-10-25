@@ -149,16 +149,27 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
 
   whenUnhandled {
 
-    case Event(_:ConnectionLost, _) => {
+    case Event(c:ConnectionLost, _) => {
       log.info("idle")
 
       log.info("goto IdleConnected")
       goto(IdleSession) using WaitingBag(1)
     }
 
-    case Event(ResetSession | Disconnect, _) => {
+    case Event(r:ResetSession, _) => {
 
       log.info("Resetting state")
+
+      bus ! BusDeattach(self)
+
+      log.info("goto WaitingForNewSession")
+      goto(WaitingForNewSession) using (WaitingBag(1))
+    }
+
+
+    case Event(d:Disconnect, _) => {
+
+      log.info("Disonnecting state")
 
       bus ! BusDeattach(self)
 
