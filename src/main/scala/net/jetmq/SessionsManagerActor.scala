@@ -2,13 +2,9 @@ package net.jetmq
 
 import java.net.URLEncoder
 import java.util.UUID
-
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 import net.jetmq.packets._
-
-case class EstablishConnection(connect: Connect, session: ActorRef)
-case class ConnectionLost()
 
 class SessionsManagerActor(bus: ActorRef) extends Actor {
 
@@ -43,7 +39,7 @@ class SessionsManagerActor(bus: ActorRef) extends Actor {
 
       val device = getOrCreate(name, p.connect_flags.clean_session)
 
-      sender ! EstablishConnection(p, device)
+      sender ! device
     }
 
     case x => {

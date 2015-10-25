@@ -1,115 +1,127 @@
 package net.jetmq.broker
 
-import akka.actor.{Stash, ActorRef, FSM}
+import akka.actor.{ActorRef, FSM}
 import akka.io.Tcp.{PeerClosed, Received}
-import net.jetmq.{EstablishConnection, ConnectionLost}
+import akka.pattern.ask
+import akka.util.Timeout
+import net.jetmq.{WrongState, ConnectionLost}
 import net.jetmq.Helpers._
 import net.jetmq.packets.{Connect, Disconnect, Header, Packet}
 
-sealed trait ConnectionState
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
+sealed trait ConnectionState
 case object Waiting extends ConnectionState
-case object WaitingForSession extends ConnectionState
 case object Active extends ConnectionState
 
-case class ConnectionBag(val connection: Option[ActorRef], val session: Option[ActorRef] = None)
+sealed trait ConnectionBag
+case class EmptyConnectionBag() extends ConnectionBag
+case class ConnectionConnectedBag(connection: ActorRef) extends ConnectionBag
+case class ConnectionSessionBag(connection: ActorRef, session: ActorRef) extends ConnectionBag
 
-class ConnectionActor(devices: ActorRef, coder: ActorRef) extends FSM[ConnectionState, ConnectionBag] with Stash {
+class ConnectionActor(devices: ActorRef, coder: ActorRef) extends FSM[ConnectionState, ConnectionBag] {
 
-  startWith(Waiting, ConnectionBag(None, None))
+  startWith(Waiting, EmptyConnectionBag())
 
   when(Active) {
-    case Event( Decoded(p), bag) => {
+    case Event(Decoded(p), bag: ConnectionSessionBag) => {
       log.info("-> " + p)
-      bag.session.get ! p
+      bag.session ! p
       stay
     }
-    case Event( Encoded(p), bag) => {
-      bag.connection.get ! p
+    case Event(Encoded(p), bag: ConnectionSessionBag) => {
+      bag.connection ! p
       stay
     }
-    case Event( p: Packet, _) => {
+    case Event(p: Packet, _) => {
       log.info("<- " + p)
       coder ! p
       stay
     }
 
-    case Event( Received(data), _) if (data.toArray.toBitVector == "e000".toBin.toBitVector) => {
+    case Event(Received(data), _) if (data.toArray.toBitVector == "e000".toBin.toBitVector) => {
       log.info("Disconnect. Closing peer")
 
       context stop self
       stay
     }
 
-    case Event ( Received(data), _) if (data.toArray.toBitVector.startsWith("10".toBin.toBitVector)) => {
+    case Event(Received(data), _) if (data.toArray.toBitVector.startsWith("10".toBin.toBitVector)) => {
       log.info("Unexpected Connect. Closing peer")
 
       context stop self
       stay
     }
 
-    case Event( Received(data), _) => {
+    case Event(Received(data), _) => {
       val bits = data.toArray.toBitVector
       coder ! bits
       stay
     }
-  }
 
-  when (WaitingForSession) {
-    case Event( Decoded(c:Connect), _) => {
-      devices ! c
+    case Event(PeerClosed, b: ConnectionSessionBag) => {
+      log.info("peer closed")
+
+      b.session ! ConnectionLost()
+
+      context stop self
       stay
     }
 
-    case Event( e:EstablishConnection, bag) => {
-      self ! Decoded(e.connect)
-      unstashAll()
-      goto(Active) using ConnectionBag(bag.connection, Some(e.session))
+    case Event(_:WrongState, _) => {
+      log.info("Session was in a wrong state")
+
+      context stop self
+      stay
     }
 
-    case _ => {
-      stash()
+    case Event(p: DecodingError, b: ConnectionSessionBag) => {
+      log.error(p.exception, "closing connection")
+
+      b.session ! Disconnect(Header(false, 0, false))
+      context stop self
+      stay
+    }
+
+    case Event(x, b: ConnectionSessionBag) => {
+      log.error("Unexpected message " + x + " for " + stateName)
+
+      b.session ! Disconnect(Header(false, 0, false))
+
+      context stop self
       stay
     }
   }
 
-  when (Waiting) {
-    case Event( Received(data), _) => {
+  when(Waiting) {
+    case Event(Received(data), _) => {
 
       log.info("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
 
       coder ! data.toArray.toBitVector
 
-      goto(WaitingForSession) using ConnectionBag(Some(sender), None)
-    }
-  }
-
-  whenUnhandled {
-
-    case Event( PeerClosed, _) => {
-      log.info("peer closed")
-
-      devices ! ConnectionLost()
-      context stop self
-      stay
+      goto(Waiting) using ConnectionConnectedBag(sender)
     }
 
-    case Event( p:DecodingError, _) => {
-      log.error(p.exception, "closing connection")
+    case Event(Decoded(c: Connect), b: ConnectionConnectedBag) => {
 
-      devices ! Disconnect(Header(false, 0, false))
-      context stop self
-      stay
+      val sessionF: Future[ActorRef] = ask(devices, c)(Timeout(1 second)).mapTo[ActorRef]
+      val session = Await.result(sessionF, 1 second)
+
+      self ! Decoded(c)
+
+      goto(Active) using ConnectionSessionBag(b.connection, session)
     }
 
     case Event(x, _) => {
-      log.error("Unexpected message " + x + " for " + stateName)
+      log.info("unexpected " + x + " for waiting. Closing peer")
 
-      devices ! Disconnect(Header(false, 0, false))
       context stop self
       stay
     }
   }
+
 
   initialize()
 }

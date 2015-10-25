@@ -13,7 +13,7 @@ class ServerActor extends Actor {
   import context.system
 
   val bus = system.actorOf(Props[EventBusActor], name = "event-bus")
-  val devices = system.actorOf(Props(new SessionsManagerActor(bus)), name = "devices")
+  val sessions = system.actorOf(Props(new SessionsManagerActor(bus)), name = "sessions")
 
   val log = Logging.getLogger(context.system, this)
 
@@ -35,7 +35,7 @@ class ServerActor extends Actor {
       log.info("client connected " + remote)
 
       val coder = system.actorOf(Props[PacketsActor])
-      val handler = system.actorOf(Props(new ConnectionActor(devices, coder)))
+      val handler = system.actorOf(Props(new ConnectionActor(sessions, coder)))
       val connection = sender()
       connection ! Register(handler)
     }

@@ -1,58 +1,89 @@
 package net.jetmq
 
-import akka.actor.{ActorRef, Actor}
-import akka.event.Logging
+import akka.actor.{Stash, ActorRef, FSM}
 import net.jetmq.broker._
 import net.jetmq.packets._
 
 case class ResetSession()
 
-class SessionActor(bus: ActorRef) extends Actor {
+sealed trait SessionState
 
-  val log = Logging.getLogger(context.system, this)
+case object WaitingForNewSession extends SessionState
 
-  context become receive(1)
+case object IdleSession extends SessionState
 
-  def receive = ???
+case object SessionConnected extends SessionState
 
-  def receive(message_id: Int):Receive = {
-    case p: Connect => {
+sealed trait SessionBag { val message_id: Int }
+
+case class WaitingBag(message_id: Int) extends SessionBag
+
+case class SessionConnectedBag(connection: ActorRef, message_id: Int) extends SessionBag
+
+case class ConnectionLost()
+case class WrongState()
+
+class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Stash {
+
+  startWith(WaitingForNewSession, WaitingBag(1))
+
+  when(WaitingForNewSession) {
+    case Event(p: Connect, bag: WaitingBag) => {
+      val result = if (p.client_id.length == 0 && p.connect_flags.clean_session == false) 2 else 0
+
+      sender ! Connack(Header(false, 0, false), result)
+
+      if (result == 0) {
+        log.info("goto SessionConnected")
+        goto(SessionConnected) using SessionConnectedBag(sender, bag.message_id)
+      } else {
+
+        stay
+      }
+    }
+
+    case Event(p: Packet, _) => {
+      sender ! WrongState()
+      stay
+    }
+  }
+
+  when(IdleSession) {
+
+    case Event(p: Connect, bag: WaitingBag) => {
       val status = if (p.client_id.length == 0 && p.connect_flags.clean_session == false) 2 else 0
       val result = if (p.connect_flags.clean_session == false && status == 0) status + 256 else status
 
       sender ! Connack(Header(false, 0, false), result)
 
       if (status == 0) {
-        context become receive(sender, message_id)
+        unstashAll()
+        log.info("goto SessionConnected")
+        goto(SessionConnected) using SessionConnectedBag(sender, bag.message_id)
+      } else {
+        stay
       }
     }
 
-    case r: ResetSession => {
+    case Event(p: Packet, _) => {
 
-      bus ! BusDeattach(self)
-      context become receive(1)
+      log.info("stashing " + p)
+
+      stash()
+      stay
     }
   }
 
-  def receive(connection: ActorRef, message_id: Int):Receive = {
+  when(SessionConnected) {
 
-    case r: ResetSession => {
-
-      bus ! BusDeattach(self)
-      context become receive(1)
-    }
-
-    case p: Disconnect => {
-      log.info("Disconnect")
-
-      context stop self
-    }
-    case p: Subscribe => {
+    case Event(p: Subscribe, _) => {
       p.topics.foreach(t => bus ! BusSubscribe(t._1, self, t._2))
 
       sender ! Suback(Header(false, 0, false), p.message_identifier, p.topics.map(x => x._2))
+      stay
     }
-    case p: Publish => {
+
+    case Event(p: Publish, _) => {
 
       if (p.header.qos == 1) {
         sender ! Puback(Header(false, 0, false), p.message_identifier)
@@ -63,47 +94,83 @@ class SessionActor(bus: ActorRef) extends Actor {
       }
 
       bus ! BusPublish(p.topic, p, p.header.retain)
+      stay
     }
-    case p: Pubrec => {
+
+    case Event(p: Pubrec, _) => {
       sender ! Pubrel(Header(false, 1, false), p.message_identifier)
+      stay
     }
-    case p: Pubrel => {
+
+    case Event(p: Pubrel, _) => {
       sender ! Pubcomp(Header(false, 0, false), p.message_identifier)
+      stay
     }
-    case p: Puback => {
+
+    case Event(p: Puback, _) => {
       log.info("doing nothing for received " + p)
+      stay
     }
-    case p: Pubcomp => {
+
+    case Event(p: Pubcomp, _) => {
       log.info("doing nothing for received " + p)
+      stay
     }
-    case p: Unsubscribe => {
+
+    case Event(p: Unsubscribe, _) => {
 
       p.topics.foreach(t => bus ! BusUnsubscribe(t, self))
 
       sender ! Unsuback(Header(false, 0, false), p.message_identifier)
+      stay
     }
-    case p: Pingreq => {
+
+    case Event(p: Pingreq, _) => {
       sender ! Pingresp(Header(false, 0, false))
+      stay
     }
 
-    case x: PublishPayload => {
+    case Event(x@PublishPayload(p: Publish, _, _), b: SessionConnectedBag) => {
 
-      x.payload match {
-        case p: Publish => {
-          val qos = p.header.qos min x.qos
+      val qos = p.header.qos min x.qos
 
-          val publish = Publish(Header(p.header.dup, qos, x.auto), p.topic, if (qos == 0) 0 else message_id, p.payload)
-          connection ! publish
+      val publish = Publish(Header(p.header.dup, qos, x.auto), p.topic, if (qos == 0) 0 else b.message_id, p.payload)
+      b.connection ! publish
 
-          if (qos > 0) {
-            context become receive(connection, message_id + 1)
-          }
-        }
+      if (qos > 0) {
+        log.info("incrementing message id to " + (b.message_id + 1))
+        log.info("goto SessionConnected")
+        goto(SessionConnected) using (SessionConnectedBag(b.connection, b.message_id + 1))
+      } else {
+        stay
       }
     }
+  }
 
-    case x => {
-      log.error("unexpected message for connected " + x)
+  whenUnhandled {
+
+    case Event(_:ConnectionLost, _) => {
+      log.info("idle")
+
+      log.info("goto IdleConnected")
+      goto(IdleSession) using WaitingBag(1)
+    }
+
+    case Event(ResetSession | Disconnect, _) => {
+
+      log.info("Resetting state")
+
+      bus ! BusDeattach(self)
+
+      log.info("goto WaitingForNewSession")
+      goto(WaitingForNewSession) using (WaitingBag(1))
+    }
+
+    case Event(x, _) => {
+      log.error("unexpected message " + x + " for " + stateName)
+
+      log.info("goto WaitingForNewSession")
+      goto(WaitingForNewSession) using (WaitingBag(1))
     }
   }
 }
