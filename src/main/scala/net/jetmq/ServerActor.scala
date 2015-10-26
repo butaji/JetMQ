@@ -34,8 +34,7 @@ class ServerActor extends Actor {
 
       log.info("client connected " + remote)
 
-      val coder = system.actorOf(Props[PacketsActor])
-      val handler = system.actorOf(Props(new ConnectionActor(sessions, coder)))
+      val handler = system.actorOf(Props(new ConnectionActor(sessions)))
       val connection = sender()
       connection ! Register(handler)
     }

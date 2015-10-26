@@ -1,37 +1,21 @@
 package net.jetmq.broker
 
-import akka.actor.Actor
-import akka.io.Tcp
-import net.jetmq.Helpers._
 import net.jetmq.packets.Packet
-import scodec.Codec
+import scodec.{Attempt, Codec}
 import scodec.bits.BitVector
 
-case class Decoded(packet: Packet)
 
-case class Encoded(bytes: Tcp.Write)
+object PacketsHelper {
 
-case class DecodingError(exception: Throwable)
+  def decode(b: BitVector): Packet = {
 
-class PacketsActor extends Actor {
+    val packet = Codec[Packet].decode(b).require.value
+    return packet
+  }
 
-  def receive = {
+  def encode(b: Packet): Attempt[BitVector] = {
 
-    case b: BitVector => {
-
-      try {
-        val packet = Codec[Packet].decode(b).require.value
-        sender ! Decoded(packet)
-      }
-      catch {
-        case e:Throwable => sender ! DecodingError(e)
-      }
-    }
-
-    case b: Packet => {
-
-      val bytes = Codec[Packet].encode(b).toTcpWrite
-      sender ! Encoded(bytes)
-    }
+    val bytes = Codec[Packet].encode(b)
+    return bytes
   }
 }

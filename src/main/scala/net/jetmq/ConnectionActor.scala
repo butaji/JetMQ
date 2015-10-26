@@ -20,46 +20,42 @@ case class EmptyConnectionBag() extends ConnectionBag
 case class ConnectionConnectedBag(connection: ActorRef) extends ConnectionBag
 case class ConnectionSessionBag(connection: ActorRef, session: ActorRef) extends ConnectionBag
 
-class ConnectionActor(devices: ActorRef, coder: ActorRef) extends FSM[ConnectionState, ConnectionBag] {
+class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, ConnectionBag] {
 
   startWith(Waiting, EmptyConnectionBag())
 
   when(Active) {
-    case Event(Decoded(p), bag: ConnectionSessionBag) => {
-      log.info("-> " + p)
-      bag.session ! p
-      stay
-    }
-    case Event(Encoded(p), bag: ConnectionSessionBag) => {
-      bag.connection ! p
-      stay
-    }
-    case Event(p: Packet, _) => {
+    case Event(p: Packet, bag:ConnectionSessionBag) => {
       log.info("<- " + p)
-      coder ! p
+      bag.connection ! PacketsHelper.encode(p).toTcpWrite
       stay
     }
 
-    case Event(Received(data), bag: ConnectionSessionBag) if (data.toArray.toBitVector == "e000".toBin.toBitVector) => {
-      log.info("Disconnect. Closing peer")
-
-      bag.session ! Disconnect(Header(false,0,false))
-
-      context stop self
-      stay
-    }
-
-    case Event(Received(data), _) if (data.toArray.toBitVector.startsWith("10".toBin.toBitVector)) => {
-      log.info("Unexpected Connect. Closing peer")
-
-      context stop self
-      stay
-    }
-
-    case Event(Received(data), _) => {
+    case Event(Received(data), bag: ConnectionSessionBag) => {
       val bits = data.toArray.toBitVector
-      coder ! bits
-      stay
+      val p = PacketsHelper.decode(bits)
+
+      p match {
+        case c:Connect => {
+          log.info("Unexpected Connect. Closing peer")
+
+          context stop self
+          stay
+        }
+        case c:Disconnect => {
+          log.info("Disconnect. Closing peer")
+
+          bag.session ! Disconnect(Header(false,0,false))
+
+          context stop self
+          stay
+        }
+        case _ => {
+          log.info("-> " + p)
+          bag.session ! p
+          stay
+        }
+      }
     }
 
     case Event(PeerClosed, b: ConnectionSessionBag) => {
@@ -74,14 +70,6 @@ class ConnectionActor(devices: ActorRef, coder: ActorRef) extends FSM[Connection
     case Event(_:WrongState, _) => {
       log.info("Session was in a wrong state")
 
-      context stop self
-      stay
-    }
-
-    case Event(p: DecodingError, b: ConnectionSessionBag) => {
-      log.error(p.exception, "closing connection")
-
-      b.session ! Disconnect(Header(false, 0, false))
       context stop self
       stay
     }
@@ -101,19 +89,26 @@ class ConnectionActor(devices: ActorRef, coder: ActorRef) extends FSM[Connection
 
       log.info("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
 
-      coder ! data.toArray.toBitVector
+      val p = PacketsHelper.decode(data.toArray.toBitVector)
 
-      goto(Waiting) using ConnectionConnectedBag(sender)
-    }
+      p match {
+        case c: Connect => {
+          val sessionF: Future[ActorRef] = ask(devices, c)(Timeout(1 second)).mapTo[ActorRef]
+          val session = Await.result(sessionF, 1 second)
 
-    case Event(Decoded(c: Connect), b: ConnectionConnectedBag) => {
+          session ! c
 
-      val sessionF: Future[ActorRef] = ask(devices, c)(Timeout(1 second)).mapTo[ActorRef]
-      val session = Await.result(sessionF, 1 second)
+          goto(Active) using ConnectionSessionBag(sender, session)
+        }
+        case x => {
 
-      self ! Decoded(c)
+          log.info("unexpected " + x + " for waiting. Closing peer")
 
-      goto(Active) using ConnectionSessionBag(b.connection, session)
+          context stop self
+          stay
+        }
+      }
+
     }
 
     case Event(x, _) => {
@@ -123,7 +118,6 @@ class ConnectionActor(devices: ActorRef, coder: ActorRef) extends FSM[Connection
       stay
     }
   }
-
 
   initialize()
 }

@@ -17,8 +17,7 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
     val devices = system.actorOf(Props(new SessionsManagerActor(bus)), "devices")
 
     def create_actor() = {
-      val coder = system.actorOf(Props[PacketsActor])
-      system.actorOf(Props(new ConnectionActor(devices, coder)))
+      system.actorOf(Props(new ConnectionActor(devices)))
     }
 
     "Scenario #52297" in {
