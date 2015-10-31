@@ -1,6 +1,7 @@
 package net.jetmq.broker
 
 import akka.actor.{ActorSystem, Props}
+import akka.io.Tcp
 import akka.testkit.{ImplicitSender, TestKit}
 import net.jetmq.SessionsManagerActor
 import net.jetmq.Helpers._
@@ -16,34 +17,36 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
     val bus = system.actorOf(Props[EventBusActor], "bus")
     val devices = system.actorOf(Props(new SessionsManagerActor(bus)), "devices")
 
-    def create_actor() = {
-      system.actorOf(Props(new ConnectionActor(devices)))
+    def create_actor(name: String) = {
+      system.actorOf(Props(new ConnectionActor(devices)), name)
     }
 
     "Scenario #52297" in {
-      val h = create_actor
+      val h = create_actor("52297")
 
       h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52298" in {
-      val h = create_actor
+      val h = create_actor("52298")
 
       h ! "101700044d51545404020000000b6d79636c69656e74696432".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52299" in {
-      val h = create_actor
+      val h = create_actor("52299")
 
       h ! "101a00044d51545404020000000e636c65616e2072657461696e6564".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
@@ -52,23 +55,25 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
       expectMsg("9003000200".toTcpWrite) //SUBACK
 
       h ! "e000".toTcpReceived //DISCONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52300" in {
-      val h = create_actor
+      val h = create_actor("52300")
 
       h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52301" in {
-      val h = create_actor
+      val h = create_actor("52301")
 
       h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
@@ -100,23 +105,25 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
 
       h ! "70020002".toTcpReceived //PUBCOMP
       h ! "e000".toTcpReceived //DISCONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52302" in {
-      val h = create_actor
+      val h = create_actor("52302")
 
       h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //CONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52303" in {
-      val h = create_actor
+      val h = create_actor("52303")
 
       h ! "10140002686a04020000000a6d79636c69656e746964".toTcpReceived //CONNECT
       expectNoMsg()
@@ -124,7 +131,7 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
     }
 
     "Scenario #52304" in {
-      val h = create_actor
+      val h = create_actor("52304")
 
       h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
@@ -155,12 +162,13 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
 
       h ! "70020002".toTcpReceived //PUBCOMP
       h ! "e000".toTcpReceived //DISCONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52307" in {
-      val h = create_actor
+      val h = create_actor("52307")
 
       h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
@@ -180,12 +188,13 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
       expectMsg("9003000a02".toTcpWrite) //SUBACK
 
       h ! "e000".toTcpReceived //DISCONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52308" in {
-      val h = create_actor
+      val h = create_actor("52308")
 
       h ! "101600044d51545404000000000a6d79636c69656e746964".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
@@ -194,12 +203,13 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
       expectMsg("9003000b02".toTcpWrite) //SUBACK
       h ! "e000".toTcpReceived //DISCONNECT
 
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52309" in {
-      val h = create_actor
+      val h = create_actor("52309")
 
       h ! "101700044d51545404020000000b6d79636c69656e74696432".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
@@ -215,12 +225,13 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
       expectMsg("70020003".toTcpWrite) //PUBCOMP
 
       h ! "e000".toTcpReceived //DISCONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52312" in {
-      val h = create_actor
+      val h = create_actor("52312")
 
       h ! "101600044d51545404000000000a6d79636c69656e746964".toTcpReceived //CONNECT
       expectMsg("20020100".toTcpWrite) //CONNACK
@@ -235,22 +246,24 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
 
       h ! "70020002".toTcpReceived //PUBCOMP
       h ! "e000".toTcpReceived //DISCONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52313" in {
-      val h = create_actor
+      val h = create_actor("52313")
 
       h ! "103800044d51545404160002000a6d79636c69656e7469640007546f7069632f430017636c69656e74206e6f7420646973636f6e6e6563746564".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
 
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52314" in {
-      val h = create_actor
+      val h = create_actor("52314")
 
       h ! "101700044d51545404000000000b6d79636c69656e74696432".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
@@ -265,12 +278,13 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
 
       h ! "70020001".toTcpReceived //PUBCOMP
       h ! "e000".toTcpReceived //DISCONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52315" in {
-      val h = create_actor
+      val h = create_actor("52315")
 
       h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
@@ -291,22 +305,24 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
 
       h ! "70020001".toTcpReceived //PUBCOMP
       h ! "e000".toTcpReceived //DISCONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52317" in {
-      val h = create_actor
+      val h = create_actor("52317")
 
       h ! "103100044d51545404160005000a6d79636c69656e74696400072f546f7069634100106b656570616c69766520657870697279".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
 
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52318" in {
-      val h = create_actor
+      val h = create_actor("52318")
 
       h ! "101700044d51545404020000000b6d79636c69656e74696432".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
@@ -321,12 +337,13 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
 
       h ! "70020001".toTcpReceived //PUBCOMP
       h ! "e000".toTcpReceived //DISCONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52325" in {
-      val h = create_actor
+      val h = create_actor("52325")
 
       h ! "101700044d51545404000000000b6d79636c69656e74696432".toTcpReceived //CONNECT
       expectMsg("20020000".toTcpWrite) //CONNACK
@@ -348,12 +365,13 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
       expectMsg("70020008".toTcpWrite) //PUBCOMP
 
       h ! "e000".toTcpReceived //DISCONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
 
     "Scenario #52326" in {
-      val h = create_actor
+      val h = create_actor("52326")
 
       h ! "101700044d51545404000000000b6d79636c69656e74696432".toTcpReceived //CONNECT
       expectMsg("20020100".toTcpWrite) //CONNACK
@@ -368,11 +386,10 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
 
       h ! "70020002".toTcpReceived //PUBCOMP
       h ! "e000".toTcpReceived //DISCONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
-
-
 
 
   }

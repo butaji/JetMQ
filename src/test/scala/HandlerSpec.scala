@@ -1,6 +1,7 @@
 package net.jetmq.broker
 
 import akka.actor.{ActorSystem, Props}
+import akka.io.Tcp
 import akka.testkit.{ImplicitSender, TestKit}
 import net.jetmq.SessionsManagerActor
 import net.jetmq.Helpers._
@@ -26,7 +27,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -37,7 +39,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -48,7 +51,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -59,7 +63,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -70,7 +75,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -84,7 +90,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("9003000200".toTcpWrite) //SUBACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -92,7 +99,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       val h = create_actor
 
       h ! "8208000100032b2f4302".toTcpReceived //SUBSCRIBE
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -103,7 +111,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -114,7 +123,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -125,7 +135,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -136,7 +147,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -147,7 +159,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -161,7 +174,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("9003000200".toTcpWrite) //SUBACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -175,7 +189,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("40020001".toTcpWrite) //PUBACK
 
       h ! "104a00044d5154540400003c003e4120636c69656e7469642074686174206973206c6f6e676572207468616e203233206368617273202d2073686f756c6420776f726b20696e20332e312e31".toTcpReceived //CONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -186,7 +201,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -197,7 +213,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -208,7 +225,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -219,7 +237,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -230,7 +249,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -244,7 +264,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("9003000200".toTcpWrite) //SUBACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -252,7 +273,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       val h = create_actor
 
       h ! "a20b000100072f546f70696341".toTcpReceived //UNSUBSCRIBE
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -263,7 +285,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -274,7 +297,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -285,7 +309,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -296,7 +321,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -307,7 +333,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -321,7 +348,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("9003000200".toTcpWrite) //SUBACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -400,7 +428,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("40020012".toTcpWrite) //PUBACK
 
       h ! "101200044d5154540400003c00066e6f726d616c".toTcpReceived //CONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -411,7 +440,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -422,7 +452,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -433,7 +464,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -444,7 +476,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -455,7 +488,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -469,7 +503,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("9003000200".toTcpWrite) //SUBACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -480,7 +515,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020002".toTcpWrite) //CONNACK
 
       h ! "330d0008546f706963412f42000131".toTcpReceived //PUBLISH
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -491,7 +527,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -502,7 +539,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -513,7 +551,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -524,7 +563,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -535,7 +575,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -549,7 +590,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("9003000200".toTcpWrite) //SUBACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -573,7 +615,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("9003000402".toTcpWrite) //SUBACK
 
       h ! "101200044d5154540402003c00066e6f726d616c".toTcpReceived //CONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -584,7 +627,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -595,7 +639,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -606,7 +651,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -617,7 +663,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -628,7 +675,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -642,7 +690,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("9003000200".toTcpWrite) //SUBACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -773,7 +822,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("7002000f".toTcpWrite) //PUBCOMP
 
       h ! "100c00044d5154540400003c0000".toTcpReceived //CONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -784,7 +834,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -795,7 +846,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -806,7 +858,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -817,7 +870,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -828,7 +882,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -842,7 +897,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("9003000200".toTcpWrite) //SUBACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -1000,7 +1056,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("b0020017".toTcpWrite) //UNSUBACK
 
       h ! "104a00044d5154540400003c003e4120636c69656e7469642074686174206973206c6f6e676572207468616e203233206368617273202d2073686f756c6420776f726b20696e20332e312e31".toTcpReceived //CONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -1011,7 +1068,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -1022,7 +1080,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -1033,7 +1092,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -1044,7 +1104,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -1055,7 +1116,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -1069,7 +1131,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("9003000200".toTcpWrite) //SUBACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -1126,7 +1189,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
 
       h ! "40020002".toTcpReceived //PUBACK
       h ! "104a00044d5154540400003c003e4120636c69656e7469642074686174206973206c6f6e676572207468616e203233206368617273202d2073686f756c6420776f726b20696e20332e312e31".toTcpReceived //CONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -1137,7 +1201,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -1148,7 +1213,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -1159,7 +1225,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -1170,7 +1237,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -1181,7 +1249,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -1195,7 +1264,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
       expectMsg("9003000200".toTcpWrite) //SUBACK
 
       h ! "e000".toTcpReceived //DISCONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 
@@ -1319,7 +1389,8 @@ class HandlerSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
 
       h ! "70020007".toTcpReceived //PUBCOMP
       h ! "104a00044d5154540400003c003e4120636c69656e7469642074686174206973206c6f6e676572207468616e203233206368617273202d2073686f756c6420776f726b20696e20332e312e31".toTcpReceived //CONNECT
-      expectNoMsg()
+      expectMsg(Tcp.Close)
+      expectNoMsg()      
       success
     }
 

@@ -1,13 +1,12 @@
 package net.jetmq.broker
 
 import akka.actor.{ActorRef, FSM}
-import akka.io.Tcp.{PeerClosed, Received}
+import akka.io.Tcp.{Close, Closed, PeerClosed, Received}
 import akka.pattern.ask
 import akka.util.Timeout
-import net.jetmq.{WrongState, ConnectionLost}
 import net.jetmq.Helpers._
 import net.jetmq.packets.{Connect, Disconnect, Header, Packet}
-
+import net.jetmq.{ConnectionLost, WrongState}
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
@@ -17,7 +16,6 @@ case object Active extends ConnectionState
 
 sealed trait ConnectionBag
 case class EmptyConnectionBag() extends ConnectionBag
-case class ConnectionConnectedBag(connection: ActorRef) extends ConnectionBag
 case class ConnectionSessionBag(connection: ActorRef, session: ActorRef) extends ConnectionBag
 
 class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, ConnectionBag] {
@@ -32,14 +30,19 @@ class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, Connection
     }
 
     case Event(Received(data), bag: ConnectionSessionBag) => {
+      log.info("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
+
       val bits = data.toArray.toBitVector
       val p = PacketsHelper.decode(bits)
 
+      log.info("-> " + p)
       p match {
         case c:Connect => {
           log.info("Unexpected Connect. Closing peer")
 
-          context stop self
+          bag.session ! Disconnect(Header(false,0,false))
+
+          bag.connection ! Close
           stay
         }
         case c:Disconnect => {
@@ -47,30 +50,32 @@ class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, Connection
 
           bag.session ! Disconnect(Header(false,0,false))
 
+          bag.connection ! Close
+
           context stop self
+
           stay
         }
         case _ => {
-          log.info("-> " + p)
           bag.session ! p
           stay
         }
       }
     }
 
-    case Event(PeerClosed, b: ConnectionSessionBag) => {
+    case Event(PeerClosed | Closed, b: ConnectionSessionBag) => {
       log.info("peer closed")
 
       b.session ! ConnectionLost()
 
-      context stop self
       stay
     }
 
-    case Event(_:WrongState, _) => {
+    case Event(_:WrongState, b: ConnectionSessionBag) => {
       log.info("Session was in a wrong state")
 
-      context stop self
+      b.connection ! Close
+
       stay
     }
 
@@ -79,7 +84,8 @@ class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, Connection
 
       b.session ! Disconnect(Header(false, 0, false))
 
-      context stop self
+      b.connection ! Close
+
       stay
     }
   }
@@ -91,6 +97,7 @@ class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, Connection
 
       val p = PacketsHelper.decode(data.toArray.toBitVector)
 
+      log.info("-> " + p)
       p match {
         case c: Connect => {
           val sessionF: Future[ActorRef] = ask(devices, c)(Timeout(1 second)).mapTo[ActorRef]
@@ -104,18 +111,34 @@ class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, Connection
 
           log.info("unexpected " + x + " for waiting. Closing peer")
 
-          context stop self
+          sender ! Close
+
           stay
         }
       }
-
     }
 
-    case Event(x, _) => {
-      log.info("unexpected " + x + " for waiting. Closing peer")
+    case Event(PeerClosed | Closed, _) => {
+      log.info("peer closed")
 
-      context stop self
+      //context stop self
       stay
+    }
+  }
+
+  whenUnhandled {
+
+    case Event(x, _) => {
+      log.error("unexpected " + x + " for " + stateName + ". Closing peer")
+
+      //context stop self ??
+      stay
+    }
+  }
+
+  onTermination {
+    case StopEvent(x,s,d) => {
+      log.info("Terminated with " + x + " and " + s + " and " + d)
     }
   }
 

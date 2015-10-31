@@ -2,20 +2,17 @@ package net.jetmq.broker
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, Props}
-import akka.event.Logging
+import akka.actor.{Actor, ActorLogging, Props}
 import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import net.jetmq.SessionsManagerActor
 
-class ServerActor extends Actor {
+class ServerActor extends Actor with ActorLogging {
 
   import context.system
 
   val bus = system.actorOf(Props[EventBusActor], name = "event-bus")
   val sessions = system.actorOf(Props(new SessionsManagerActor(bus)), name = "sessions")
-
-  val log = Logging.getLogger(context.system, this)
 
   IO(Tcp) ! Bind(self, new InetSocketAddress("localhost", 1883))
 
@@ -34,9 +31,8 @@ class ServerActor extends Actor {
 
       log.info("client connected " + remote)
 
-      val handler = system.actorOf(Props(new ConnectionActor(sessions)))
-      val connection = sender()
-      connection ! Register(handler)
+      val handler = system.actorOf(Props(new ConnectionActor(sessions)), remote.getHostString + ":" + remote.getPort)
+      sender ! Register(handler)
     }
   }
 }

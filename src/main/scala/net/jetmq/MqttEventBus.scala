@@ -1,7 +1,6 @@
 package net.jetmq.broker
 
-import akka.actor.{Actor, ActorRef}
-import akka.event.Logging
+import akka.actor.{Actor, ActorLogging, ActorRef}
 
 case class BusSubscribe(topic: String, actor: ActorRef, qos: Int = 0)
 case class BusUnsubscribe(topic: String, actor: ActorRef)
@@ -12,9 +11,7 @@ case class BusDeattach(actor: ActorRef)
 
 case class PublishPayload(payload: Any, auto: Boolean, qos: Int = 0)
 
-class EventBusActor extends Actor {
-
-  val log = Logging.getLogger(context.system, this)
+class EventBusActor extends Actor with ActorLogging {
 
   context become working(List(), List())
 

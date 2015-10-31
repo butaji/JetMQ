@@ -1,6 +1,6 @@
 package net.jetmq
 
-import akka.actor.{Stash, ActorRef, FSM}
+import akka.actor.{ActorRef, FSM, Stash}
 import net.jetmq.broker._
 import net.jetmq.packets._
 
@@ -65,7 +65,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
       }
     }
 
-    case Event(p: Packet, _) => {
+    case Event(p @ (Packet | PublishPayload), _) => {
 
       log.info("stashing " + p)
 
@@ -149,25 +149,28 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
 
   whenUnhandled {
 
-    case Event(c:ConnectionLost, _) => {
+    case Event(c@ConnectionLost(), _) => {
       log.info("idle")
 
       log.info("goto IdleConnected")
       goto(IdleSession) using WaitingBag(1)
     }
 
-    case Event(r:ResetSession, _) => {
+    case Event(r@ResetSession(), _) => {
 
       log.info("Resetting state")
 
       bus ! BusDeattach(self)
 
-      log.info("goto WaitingForNewSession")
-      goto(WaitingForNewSession) using (WaitingBag(1))
+
+      throw new UnsupportedOperationException()
+
+//      log.info("goto WaitingForNewSession")
+//      goto(WaitingForNewSession) using (WaitingBag(1))
     }
 
 
-    case Event(d:Disconnect, _) => {
+    case Event(d@Disconnect(_), _) => {
 
       log.info("Disonnecting state")
 
@@ -184,4 +187,6 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
       goto(WaitingForNewSession) using (WaitingBag(1))
     }
   }
+
+  initialize()
 }

@@ -2,13 +2,11 @@ package net.jetmq
 
 import java.net.URLEncoder
 import java.util.UUID
-import akka.actor.{Actor, ActorRef, Props}
-import akka.event.Logging
+
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import net.jetmq.packets._
 
-class SessionsManagerActor(bus: ActorRef) extends Actor {
-
-  val log = Logging.getLogger(context.system, this)
+class SessionsManagerActor(bus: ActorRef) extends Actor with ActorLogging {
 
   def getActorName(client_id: String): String = {
 
@@ -24,11 +22,16 @@ class SessionsManagerActor(bus: ActorRef) extends Actor {
     }
 
     if (c.isDefined && clean_session == true) {
-      c.get ! ResetSession
+
+      c.get ! ResetSession()
       return c.get
     }
 
-    context.actorOf(Props(new SessionActor(bus)), name = actor_name)
+    val a = context.actorOf(Props(new SessionActor(bus)), name = actor_name)
+
+    context.watch(a)
+
+    return a
   }
 
   def receive = {
