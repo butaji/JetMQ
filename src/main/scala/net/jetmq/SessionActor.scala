@@ -162,11 +162,8 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
 
       bus ! BusDeattach(self)
 
-
-      throw new UnsupportedOperationException()
-
-//      log.info("goto WaitingForNewSession")
-//      goto(WaitingForNewSession) using (WaitingBag(1))
+      log.info("goto WaitingForNewSession")
+      goto(WaitingForNewSession) using (WaitingBag(1))
     }
 
 

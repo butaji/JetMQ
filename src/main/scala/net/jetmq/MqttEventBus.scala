@@ -48,7 +48,7 @@ class EventBusActor extends Actor with ActorLogging {
 
     case p: BusDeattach => {
       log.info("clearing bus for " + p)
-      context become working(subscriptions.filter(t => t._2 == p.actor), retains)
+      context become working(subscriptions.filter(t => t._2 != p.actor), retains)
     }
     case p: BusPublish => {
 
