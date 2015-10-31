@@ -25,7 +25,11 @@ class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, Connection
   when(Active) {
     case Event(p: Packet, bag:ConnectionSessionBag) => {
       log.info("<- " + p)
-      bag.connection ! PacketsHelper.encode(p).toTcpWrite
+      val bits = PacketsHelper.encode(p)
+
+      log.info("send data: " + bits.require.toByteArray.map("%02X" format _).mkString)
+
+      bag.connection ! bits.toTcpWrite
       stay
     }
 
