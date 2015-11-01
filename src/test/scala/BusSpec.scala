@@ -240,8 +240,8 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       bus ! BusPublish("game/score", "2", true)
       expectMsg(PublishPayload("2",false))
 
-      bus ! BusPublish("game/score", None, true)
-      expectNoMsg()
+      bus ! BusPublish("game/score", "3", true, true)
+      expectMsg(PublishPayload("3",false))
 
       bus ! BusUnsubscribe("game/score", self)
 

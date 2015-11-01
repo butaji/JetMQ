@@ -92,7 +92,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
         sender ! Pubrec(Header(false, 0, false), p.message_identifier)
       }
 
-      bus ! BusPublish(p.topic, p, p.header.retain)
+      bus ! BusPublish(p.topic, p, p.header.retain, p.payload.length == 0)
       stay
     }
 

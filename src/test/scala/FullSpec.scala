@@ -3,8 +3,8 @@ package net.jetmq.broker
 import akka.actor.{ActorSystem, Props}
 import akka.io.Tcp
 import akka.testkit.{ImplicitSender, TestKit}
-import net.jetmq.SessionsManagerActor
 import net.jetmq.Helpers._
+import net.jetmq.SessionsManagerActor
 import org.specs2.mutable._
 import org.specs2.specification.Scope
 
@@ -79,21 +79,19 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "820b00020006546f7069634102".toTcpReceived //SUBSCRIBE
-      expectMsg("9003000202".toTcpWrite) //SUBACK
-
       h ! "300d0006546f70696341716f732030".toTcpReceived //PUBLISH
-
       h ! "320f0006546f706963410003716f732031".toTcpReceived //PUBLISH
-      expectMsg("40020003".toTcpWrite) //PUBACK
-
       h ! "340f0006546f706963410004716f732032".toTcpReceived //PUBLISH
-      expectMsg("50020004".toTcpWrite) //PUBREC
+      expectMsg("9003000202".toTcpWrite) //SUBACK
 
       expectMsg("300d0006546f70696341716f732030".toTcpWrite) //PUBLISH
 
       expectMsg("320f0006546f706963410001716f732031".toTcpWrite) //PUBLISH
 
+      expectMsg("40020003".toTcpWrite) //PUBACK
+
       h ! "40020001".toTcpReceived //PUBACK
+      expectMsg("50020004".toTcpWrite) //PUBREC
 
       h ! "62020004".toTcpReceived //PUBREL
       expectMsg("340f0006546f706963410002716f732032".toTcpWrite) //PUBLISH
@@ -126,6 +124,7 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
       val h = create_actor("52303")
 
       h ! "10140002686a04020000000a6d79636c69656e746964".toTcpReceived //CONNECT
+      expectMsg(Tcp.Close)
       expectNoMsg()
       success
     }
@@ -147,8 +146,6 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
       expectMsg("70020006".toTcpWrite) //PUBCOMP
 
       h ! "8208000700032b2f2b02".toTcpReceived //SUBSCRIBE
-      expectMsg("9003000702".toTcpWrite) //SUBACK
-
       expectMsg("33100007546f7069632f430001716f732031".toTcpWrite) //PUBLISH
 
       h ! "40020001".toTcpReceived //PUBACK
@@ -156,6 +153,7 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
 
       expectMsg("35110008546f706963412f430002716f732032".toTcpWrite) //PUBLISH
 
+      expectMsg("9003000702".toTcpWrite) //SUBACK
 
       h ! "50020002".toTcpReceived //PUBREC
       expectMsg("62020002".toTcpWrite) //PUBREL
@@ -174,11 +172,10 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "310a0008546f706963412f42".toTcpReceived //PUBLISH
-
       h ! "330b0007546f7069632f430008".toTcpReceived //PUBLISH
+      h ! "350c0008546f706963412f430009".toTcpReceived //PUBLISH
       expectMsg("40020008".toTcpWrite) //PUBACK
 
-      h ! "350c0008546f706963412f430009".toTcpReceived //PUBLISH
       expectMsg("50020009".toTcpWrite) //PUBREC
 
       h ! "62020009".toTcpReceived //PUBREL
@@ -186,9 +183,6 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
 
       h ! "8208000a00032b2f2b02".toTcpReceived //SUBSCRIBE
       expectMsg("9003000a02".toTcpWrite) //SUBACK
-      expectMsg("330B0007546F7069632F430001".toTcpWrite) //PUBLISH
-      expectMsg("310A0008546F706963412F42".toTcpWrite) //PUBLISH
-      expectMsg("350C0008546F706963412F430002".toTcpWrite) //PUBLISH
 
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
@@ -203,12 +197,8 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
       expectMsg("20020000".toTcpWrite) //CONNACK
 
       h ! "8208000b00032b2f2b02".toTcpReceived //SUBSCRIBE
-      expectMsg("9003000b02".toTcpWrite) //SUBACK
-      expectMsg("330B0007546F7069632F430001".toTcpWrite) //PUBLISH
-      expectMsg("310A0008546F706963412F42".toTcpWrite) //PUBLISH
-      expectMsg("350C0008546F706963412F430002".toTcpWrite) //PUBLISH
-
       h ! "e000".toTcpReceived //DISCONNECT
+      expectMsg("9003000b02".toTcpWrite) //SUBACK
 
       expectMsg(Tcp.Close)
       expectNoMsg()
@@ -397,6 +387,7 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
       expectNoMsg()
       success
     }
+
 
 
   }
