@@ -27,14 +27,14 @@ class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, Connection
       log.info("<- " + p)
       val bits = PacketsHelper.encode(p)
 
-      log.info("send data: " + bits.require.toByteArray.map("%02X" format _).mkString)
+//      log.info("send data: " + bits.require.toByteArray.map("%02X" format _).mkString)
 
       bag.connection ! bits.toTcpWrite
       stay
     }
 
     case Event(Received(data), bag: ConnectionSessionBag) => {
-      log.info("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
+//      log.info("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
 
       val bits = data.toArray.toBitVector
       val p = PacketsHelper.decode(bits)
@@ -97,7 +97,7 @@ class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, Connection
   when(Waiting) {
     case Event(Received(data), _) => {
 
-      log.info("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
+      //log.info("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
 
       val p = PacketsHelper.decode(data.toArray.toBitVector)
 
@@ -145,6 +145,13 @@ class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, Connection
       log.info("Terminated with " + x + " and " + s + " and " + d)
     }
   }
+
+  onTransition(handler _)
+
+  def handler(from: ConnectionState, to: ConnectionState): Unit = {
+    log.info("State changed from " + from + " to " + to)
+  }
+
 
   initialize()
 }

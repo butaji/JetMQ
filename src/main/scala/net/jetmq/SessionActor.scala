@@ -34,7 +34,6 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
       sender ! Connack(Header(false, 0, false), result)
 
       if (result == 0) {
-        log.info("goto SessionConnected")
         goto(SessionConnected) using SessionConnectedBag(sender, bag.message_id)
       } else {
 
@@ -58,7 +57,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
 
       if (status == 0) {
         unstashAll()
-        log.info("goto SessionConnected")
+
         goto(SessionConnected) using SessionConnectedBag(sender, bag.message_id)
       } else {
         stay
@@ -139,7 +138,6 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
 
       if (qos > 0) {
         log.info("incrementing message id to " + (b.message_id + 1))
-        log.info("goto SessionConnected")
         goto(SessionConnected) using (SessionConnectedBag(b.connection, b.message_id + 1))
       } else {
         stay
@@ -152,7 +150,6 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
     case Event(c@ConnectionLost(), _) => {
       log.info("idle")
 
-      log.info("goto IdleConnected")
       goto(IdleSession) using WaitingBag(1)
     }
 
@@ -162,7 +159,6 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
 
       bus ! BusDeattach(self)
 
-      log.info("goto WaitingForNewSession")
       goto(WaitingForNewSession) using (WaitingBag(1))
     }
 
@@ -173,16 +169,20 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
 
       bus ! BusDeattach(self)
 
-      log.info("goto WaitingForNewSession")
       goto(WaitingForNewSession) using (WaitingBag(1))
     }
 
     case Event(x, _) => {
       log.error("unexpected message " + x + " for " + stateName)
 
-      log.info("goto WaitingForNewSession")
       goto(WaitingForNewSession) using (WaitingBag(1))
     }
+  }
+
+  onTransition(handler _)
+
+  def handler(from: SessionState, to: SessionState): Unit = {
+    log.info("State changed from " + from + " to " + to)
   }
 
   initialize()

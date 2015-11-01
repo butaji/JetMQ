@@ -204,6 +204,10 @@ class FullSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
 
       h ! "8208000b00032b2f2b02".toTcpReceived //SUBSCRIBE
       expectMsg("9003000b02".toTcpWrite) //SUBACK
+      expectMsg("330B0007546F7069632F430001".toTcpWrite) //PUBLISH
+      expectMsg("310A0008546F706963412F42".toTcpWrite) //PUBLISH
+      expectMsg("350C0008546F706963412F430002".toTcpWrite) //PUBLISH
+
       h ! "e000".toTcpReceived //DISCONNECT
 
       expectMsg(Tcp.Close)

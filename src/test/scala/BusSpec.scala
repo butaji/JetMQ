@@ -224,6 +224,37 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
 
     }
 
+    "delete retain message from topic with empty value" in {
+      val bus = system.actorOf(Props[EventBusActor])
+
+      bus ! BusSubscribe("game/score", self)
+      expectNoMsg()
+
+      bus ! BusUnsubscribe("game/score", self)
+
+      bus ! BusPublish("game/score", "1", true)
+
+      bus ! BusSubscribe("game/score", self)
+      expectMsg(PublishPayload("1",true))
+
+      bus ! BusPublish("game/score", "2", true)
+      expectMsg(PublishPayload("2",false))
+
+      bus ! BusPublish("game/score", None, true)
+      expectNoMsg()
+
+      bus ! BusUnsubscribe("game/score", self)
+
+      bus ! BusSubscribe("game/score", self)
+      expectNoMsg()
+
+      bus ! BusSubscribe("#", self)
+      expectNoMsg()
+
+      success
+
+    }
+
     "complex scenario with square" in {
       val bus = system.actorOf(Props[EventBusActor])
 
