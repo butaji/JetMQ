@@ -13,7 +13,8 @@ puts "def hex_to_bin(s) s.scan(/../).map { |x| x.hex.chr }.join end"
 
 res.each { |i, l| 
 
-  puts "\n\##{i}"
+  puts "puts ''"
+  puts "\nputs '#{i}'"
   puts "\nclient = TCPSocket.new('127.0.0.1', 1883)\n"
 
   l.each { |x| 

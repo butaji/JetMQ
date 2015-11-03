@@ -41,7 +41,11 @@ class ConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Connectio
 
       val p = PacketsHelper.decode(data.toBitVector)
 
-      log.info("-> " + p)
+      p match {
+        case Successful(DecodeResult(x:Packet, _)) => log.info("-> " + x)
+        case _ => {}
+      }
+      
       p match {
         case Successful(DecodeResult(c:Connect, _)) => {
           log.info("Unexpected Connect. Closing peer")
@@ -99,7 +103,11 @@ class ConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Connectio
 
       val p = PacketsHelper.decode(data.toBitVector)
 
-      log.info("-> " + p)
+      p match {
+        case Successful(DecodeResult(x:Packet, _)) => log.info("-> " + x)
+        case _ => {}
+      }
+
       p match {
         case Successful(DecodeResult(c:Connect, _)) => {
           val sessionF: Future[ActorRef] = ask(sessions, c)(Timeout(1 second)).mapTo[ActorRef]
