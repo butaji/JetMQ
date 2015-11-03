@@ -7,6 +7,9 @@ import akka.util.Timeout
 import net.jetmq.Helpers._
 import net.jetmq.packets.{Connect, Disconnect, Header, Packet}
 import net.jetmq.{ConnectionLost, WrongState}
+import scodec.Attempt.{Failure, Successful}
+import scodec.DecodeResult
+
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
@@ -16,9 +19,9 @@ case object Active extends ConnectionState
 
 sealed trait ConnectionBag
 case class EmptyConnectionBag() extends ConnectionBag
-case class ConnectionSessionBag(connection: ActorRef, session: ActorRef) extends ConnectionBag
+case class ConnectionSessionBag(session: ActorRef, connection: ActorRef) extends ConnectionBag
 
-class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, ConnectionBag] {
+class ConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, ConnectionBag] {
 
   startWith(Waiting, EmptyConnectionBag())
 
@@ -36,57 +39,52 @@ class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, Connection
     case Event(Received(data), bag: ConnectionSessionBag) => {
 //      log.info("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
 
-      val bits = data.toArray.toBitVector
-      val p = PacketsHelper.decode(bits)
+      val p = PacketsHelper.decode(data.toBitVector)
 
       log.info("-> " + p)
       p match {
-        case c:Connect => {
+        case Successful(DecodeResult(c:Connect, _)) => {
           log.info("Unexpected Connect. Closing peer")
 
           bag.session ! Disconnect(Header(false,0,false))
 
           bag.connection ! Close
+
           stay
         }
-        case c:Disconnect => {
+        case Successful(DecodeResult(c:Disconnect, _)) => {
           log.info("Disconnect. Closing peer")
 
           bag.session ! Disconnect(Header(false,0,false))
 
           bag.connection ! Close
 
-          context stop self
+          stay
+        }
+        case Successful(DecodeResult(c:Packet, _)) => {
+          bag.session ! c
 
           stay
         }
-        case _ => {
-          bag.session ! p
+        case Failure(f) => {
+          log.warning("Got failure " + f)
+
+          bag.connection ! Close
           stay
         }
       }
     }
 
-    case Event(PeerClosed | Closed, b: ConnectionSessionBag) => {
+    case Event(PeerClosed, b: ConnectionSessionBag) => {
       log.info("peer closed")
 
       b.session ! ConnectionLost()
 
-      stay
+      stop
     }
 
     case Event(_:WrongState, b: ConnectionSessionBag) => {
       log.info("Session was in a wrong state")
-
-      b.connection ! Close
-
-      stay
-    }
-
-    case Event(x, b: ConnectionSessionBag) => {
-      log.error("Unexpected message " + x + " for " + stateName)
-
-      b.session ! Disconnect(Header(false, 0, false))
 
       b.connection ! Close
 
@@ -99,17 +97,23 @@ class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, Connection
 
       //log.info("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
 
-      val p = PacketsHelper.decode(data.toArray.toBitVector)
+      val p = PacketsHelper.decode(data.toBitVector)
 
       log.info("-> " + p)
       p match {
-        case c: Connect => {
-          val sessionF: Future[ActorRef] = ask(devices, c)(Timeout(1 second)).mapTo[ActorRef]
+        case Successful(DecodeResult(c:Connect, _)) => {
+          val sessionF: Future[ActorRef] = ask(sessions, c)(Timeout(1 second)).mapTo[ActorRef]
           val session = Await.result(sessionF, 1 second)
 
           session ! c
 
-          goto(Active) using ConnectionSessionBag(sender, session)
+          goto(Active) using ConnectionSessionBag(session, sender)
+        }
+        case Failure(f) => {
+          log.warning("Got failure " + f)
+
+          sender ! Close
+          stay
         }
         case x => {
 
@@ -121,21 +125,23 @@ class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, Connection
         }
       }
     }
-
-    case Event(PeerClosed | Closed, _) => {
-      log.info("peer closed")
-
-      //context stop self
-      stay
-    }
   }
 
   whenUnhandled {
 
+    case Event(Closed, b) => {
+
+      log.info("Closed for " + stateName + ". Stopping")
+
+      stop
+    }
+
+
     case Event(x, _) => {
       log.error("unexpected " + x + " for " + stateName + ". Closing peer")
 
-      //context stop self ??
+      sender ! Close
+
       stay
     }
   }
@@ -151,7 +157,6 @@ class ConnectionActor(devices: ActorRef) extends FSM[ConnectionState, Connection
   def handler(from: ConnectionState, to: ConnectionState): Unit = {
     log.info("State changed from " + from + " to " + to)
   }
-
 
   initialize()
 }

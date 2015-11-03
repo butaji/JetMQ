@@ -7,32 +7,25 @@ import scodec.bits.BitVector
 
 object Helpers {
 
+
+  implicit class ByteStringHelper(val s: ByteString) extends AnyVal {
+
+    def toBitVector(): BitVector = {
+      BitVector(s)
+    }
+
+  }
+
   implicit class BitVectorHelper(val a: Attempt[BitVector]) extends AnyVal {
 
     def toTcpWrite(): Tcp.Write = {
-      a.require.toByteArray.toTcpWrite
-    }
-
-    def toTcpReceived(): Tcp.Received ={
-      a.require.toByteArray.toTcpReceived
-    }
-  }
-
-
-  implicit class ByteArrayHelper(val a:Array[Byte]) extends AnyVal {
-
-    def toBitVector(): BitVector = {
-      BitVector(a)
-    }
-
-    def toTcpWrite(): Tcp.Write = {
-      Tcp.Write(ByteString(a))
+      Tcp.Write(ByteString(a.require.toByteBuffer))
     }
 
     def toTcpReceived(): Tcp.Received = {
-      Tcp.Received(ByteString(a))
-    }
 
+      Tcp.Received(ByteString(a.require.toByteBuffer))
+    }
   }
 
   implicit class StringHelper(val s: String) extends AnyVal {
@@ -57,6 +50,4 @@ object Helpers {
     }
 
   }
-
-
 }
