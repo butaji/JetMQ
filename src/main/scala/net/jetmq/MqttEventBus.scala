@@ -35,8 +35,8 @@ class EventBusActor extends Actor with ActorLogging {
       }
 
       retains
-        .sortBy(t => t._1)
         .filter(t => MqttTopicClassificator.isSubclass(t._1, p.topic))
+        .sortBy(t => t._1)
         .foreach(t => {
 
           p.actor ! PublishPayload(t._2, true, p.qos)

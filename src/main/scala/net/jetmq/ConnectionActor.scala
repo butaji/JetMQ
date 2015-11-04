@@ -14,11 +14,15 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 sealed trait ConnectionState
+
 case object Waiting extends ConnectionState
+
 case object Active extends ConnectionState
 
 sealed trait ConnectionBag
+
 case class EmptyConnectionBag() extends ConnectionBag
+
 case class ConnectionSessionBag(session: ActorRef, connection: ActorRef) extends ConnectionBag
 
 class ConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, ConnectionBag] {
@@ -26,46 +30,46 @@ class ConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Connectio
   startWith(Waiting, EmptyConnectionBag())
 
   when(Active) {
-    case Event(p: Packet, bag:ConnectionSessionBag) => {
+    case Event(p: Packet, bag: ConnectionSessionBag) => {
       log.info("<- " + p)
       val bits = PacketsHelper.encode(p)
 
-//      log.info("send data: " + bits.require.toByteArray.map("%02X" format _).mkString)
+      log.info("send data: " + bits.require.toByteArray.map("%02X" format _).mkString)
 
       bag.connection ! bits.toTcpWrite
       stay
     }
 
     case Event(Received(data), bag: ConnectionSessionBag) => {
-//      log.info("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
+      log.info("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
 
       val p = PacketsHelper.decode(data.toBitVector)
 
       p match {
-        case Successful(DecodeResult(x:Packet, _)) => log.info("-> " + x)
+        case Successful(DecodeResult(x: Packet, _)) => log.info("-> " + x)
         case _ => {}
       }
-      
+
       p match {
-        case Successful(DecodeResult(c:Connect, _)) => {
+        case Successful(DecodeResult(c: Connect, _)) => {
           log.info("Unexpected Connect. Closing peer")
 
-          bag.session ! Disconnect(Header(false,0,false))
+          bag.session ! Disconnect(Header(false, 0, false))
 
           bag.connection ! Close
 
           stay
         }
-        case Successful(DecodeResult(c:Disconnect, _)) => {
+        case Successful(DecodeResult(c: Disconnect, _)) => {
           log.info("Disconnect. Closing peer")
 
-          bag.session ! Disconnect(Header(false,0,false))
+          bag.session ! Disconnect(Header(false, 0, false))
 
           bag.connection ! Close
 
           stay
         }
-        case Successful(DecodeResult(c:Packet, _)) => {
+        case Successful(DecodeResult(c: Packet, _)) => {
           bag.session ! c
 
           stay
@@ -87,7 +91,7 @@ class ConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Connectio
       stop
     }
 
-    case Event(_:WrongState, b: ConnectionSessionBag) => {
+    case Event(_: WrongState, b: ConnectionSessionBag) => {
       log.info("Session was in a wrong state")
 
       b.connection ! Close
@@ -99,17 +103,17 @@ class ConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Connectio
   when(Waiting) {
     case Event(Received(data), _) => {
 
-      //log.info("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
+      log.info("received data from" + sender() + ": " + data.map("%02X" format _).mkString)
 
       val p = PacketsHelper.decode(data.toBitVector)
 
       p match {
-        case Successful(DecodeResult(x:Packet, _)) => log.info("-> " + x)
+        case Successful(DecodeResult(x: Packet, _)) => log.info("-> " + x)
         case _ => {}
       }
 
       p match {
-        case Successful(DecodeResult(c:Connect, _)) => {
+        case Successful(DecodeResult(c: Connect, _)) => {
           val sessionF: Future[ActorRef] = ask(sessions, c)(Timeout(1 second)).mapTo[ActorRef]
           val session = Await.result(sessionF, 1 second)
 
@@ -144,7 +148,6 @@ class ConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Connectio
       stop
     }
 
-
     case Event(x, _) => {
       log.error("unexpected " + x + " for " + stateName + ". Closing peer")
 
@@ -155,7 +158,7 @@ class ConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Connectio
   }
 
   onTermination {
-    case StopEvent(x,s,d) => {
+    case StopEvent(x, s, d) => {
       log.info("Terminated with " + x + " and " + s + " and " + d)
     }
   }

@@ -19,7 +19,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       bus ! BusPublish("time", "123")
       bus ! BusPublish("greetings", "hello")
 
-      expectMsg(PublishPayload("hello",false))
+      expectMsg(PublishPayload("hello", false))
 
       expectNoMsg()
       success
@@ -30,13 +30,13 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       val bus = system.actorOf(Props[EventBusActor])
       bus ! BusSubscribe("sport/tennis/player1/#", self)
       bus ! BusPublish("sport/tennis/player1", "1")
-      expectMsg(PublishPayload("1",false))
+      expectMsg(PublishPayload("1", false))
 
       bus ! BusPublish("sport/tennis/player1/ranking", "2")
-      expectMsg(PublishPayload("2",false))
+      expectMsg(PublishPayload("2", false))
 
       bus ! BusPublish("sport/tennis/player1/score/wimbledon", "3")
-      expectMsg(PublishPayload("3",false))
+      expectMsg(PublishPayload("3", false))
 
       expectNoMsg()
       success
@@ -48,7 +48,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       val bus = system.actorOf(Props[EventBusActor])
       bus ! BusSubscribe("sport/tennis/player2", self)
       bus ! BusPublish("sport/tennis/player2", "1")
-      expectMsg(PublishPayload("1",false))
+      expectMsg(PublishPayload("1", false))
 
       bus ! BusPublish("sport/tennis/player2/ranking", "2")
 
@@ -61,13 +61,13 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       val bus = system.actorOf(Props[EventBusActor])
       bus ! BusSubscribe("sport/#", self)
       bus ! BusPublish("sport", "1")
-      expectMsg(PublishPayload("1",false))
+      expectMsg(PublishPayload("1", false))
 
       expectNoMsg()
 
       bus ! BusSubscribe("#", self)
       bus ! BusPublish("sport", "2")
-      expectMsg(PublishPayload("2",false))
+      expectMsg(PublishPayload("2", false))
 
       expectNoMsg()
       success
@@ -78,13 +78,13 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       val bus = system.actorOf(Props[EventBusActor])
       bus ! BusSubscribe("#", self)
       bus ! BusPublish("sport", "1")
-      expectMsg(PublishPayload("1",false))
+      expectMsg(PublishPayload("1", false))
 
       bus ! BusPublish("dw", "2")
-      expectMsg(PublishPayload("2",false))
+      expectMsg(PublishPayload("2", false))
 
       bus ! BusPublish("dw/1/2/3/values", "3")
-      expectMsg(PublishPayload("3",false))
+      expectMsg(PublishPayload("3", false))
 
       expectNoMsg()
       success
@@ -96,7 +96,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       val bus = system.actorOf(Props[EventBusActor])
       bus ! BusSubscribe("sport/tennis/#", self)
       bus ! BusPublish("sport/tennis/123", "1")
-      expectMsg(PublishPayload("1",false))
+      expectMsg(PublishPayload("1", false))
 
       expectNoMsg()
       success
@@ -116,10 +116,10 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       val bus = system.actorOf(Props[EventBusActor])
       bus ! BusSubscribe("sport/tennis/+", self)
       bus ! BusPublish("sport/tennis/player1", "1")
-      expectMsg(PublishPayload("1",false))
+      expectMsg(PublishPayload("1", false))
 
       bus ! BusPublish("sport/tennis/player2", "2")
-      expectMsg(PublishPayload("2",false))
+      expectMsg(PublishPayload("2", false))
 
       bus ! BusPublish("sport/tennis/player1/ranking", "3")
 
@@ -135,7 +135,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       expectNoMsg()
 
       bus ! BusPublish("sport/", "2")
-      expectMsg(PublishPayload("2",false))
+      expectMsg(PublishPayload("2", false))
 
       success
     }
@@ -145,7 +145,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       val bus = system.actorOf(Props[EventBusActor])
       bus ! BusSubscribe("+/+", self)
       bus ! BusPublish("/finance", "1")
-      expectMsg(PublishPayload("1",false))
+      expectMsg(PublishPayload("1", false))
 
       success
     }
@@ -155,7 +155,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       val bus = system.actorOf(Props[EventBusActor])
       bus ! BusSubscribe("/+", self)
       bus ! BusPublish("/finance", "1")
-      expectMsg(PublishPayload("1",false))
+      expectMsg(PublishPayload("1", false))
 
       success
     }
@@ -175,10 +175,10 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       val bus = system.actorOf(Props[EventBusActor])
       bus ! BusSubscribe("+/tennis/#", self)
       bus ! BusPublish("sport/tennis/values", "1")
-      expectMsg(PublishPayload("1",false))
+      expectMsg(PublishPayload("1", false))
 
       bus ! BusPublish("sellings/tennis/summer", "2")
-      expectMsg(PublishPayload("2",false))
+      expectMsg(PublishPayload("2", false))
 
       success
     }
@@ -193,10 +193,10 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       val bus = system.actorOf(Props[EventBusActor])
       bus ! BusSubscribe("sport/+/player1", self)
       bus ! BusPublish("sport/tennis/player1", "1")
-      expectMsg(PublishPayload("1",false))
+      expectMsg(PublishPayload("1", false))
 
       bus ! BusPublish("sport/boxing/player1", "2")
-      expectMsg(PublishPayload("2",false))
+      expectMsg(PublishPayload("2", false))
 
       success
     }
@@ -212,13 +212,13 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       bus ! BusPublish("game/score", "1", true)
 
       bus ! BusSubscribe("game/score", self)
-      expectMsg(PublishPayload("1",true))
+      expectMsg(PublishPayload("1", true))
 
       bus ! BusPublish("game/score", "2", true)
-      expectMsg(PublishPayload("2",false))
+      expectMsg(PublishPayload("2", false))
 
       bus ! BusSubscribe("#", self)
-      expectMsg(PublishPayload("2",true))
+      expectMsg(PublishPayload("2", true))
 
       success
 
@@ -235,13 +235,13 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       bus ! BusPublish("game/score", "1", true)
 
       bus ! BusSubscribe("game/score", self)
-      expectMsg(PublishPayload("1",true))
+      expectMsg(PublishPayload("1", true))
 
       bus ! BusPublish("game/score", "2", true)
-      expectMsg(PublishPayload("2",false))
+      expectMsg(PublishPayload("2", false))
 
       bus ! BusPublish("game/score", "3", true, true)
-      expectMsg(PublishPayload("3",false))
+      expectMsg(PublishPayload("3", false))
 
       bus ! BusUnsubscribe("game/score", self)
 
