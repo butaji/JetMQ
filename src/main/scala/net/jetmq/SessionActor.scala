@@ -55,11 +55,20 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
       stay
     }
 
-    case Event(p: PublishPayload, b: SessionWaitingBag) => {
+    case Event(p@PublishPayload(pp:Publish,_,_), b: SessionWaitingBag) => {
 
-      log.info("stashing " + p)
 
-      goto(WaitingForNewSession) using (SessionWaitingBag(b.stashed :+ p, b.message_id, b.clean_session))
+      if (pp.header.qos > 0) {
+
+        val sp = p.copy(payload = pp.copy(header = pp.header.copy(dup = true)))
+        log.info("stashing " + sp)
+
+        goto(WaitingForNewSession) using (SessionWaitingBag(b.stashed :+ sp, b.message_id, b.clean_session))
+      } else {
+        log.info("skipping stash " + p)
+
+        stay
+      }
     }
   }
 
