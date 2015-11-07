@@ -1,6 +1,6 @@
 package net.jetmq
 
-import akka.actor.{ActorRef, FSM, Stash}
+import akka.actor.{ActorRef, FSM}
 import net.jetmq.broker._
 import net.jetmq.packets._
 
@@ -10,33 +10,42 @@ sealed trait SessionState
 
 case object WaitingForNewSession extends SessionState
 
-case object IdleSession extends SessionState
-
 case object SessionConnected extends SessionState
 
-sealed trait SessionBag { val message_id: Int }
+sealed trait SessionBag {
+  val message_id: Int;
+  val clean_session: Boolean
+}
 
-case class WaitingBag(message_id: Int) extends SessionBag
+case class SessionWaitingBag(stashed: List[PublishPayload], message_id: Int, clean_session: Boolean) extends SessionBag
 
-case class SessionConnectedBag(connection: ActorRef, message_id: Int) extends SessionBag
+case class SessionConnectedBag(connection: ActorRef, clean_session: Boolean, message_id: Int) extends SessionBag
 
 case class ConnectionLost()
+
 case class WrongState()
 
-class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Stash {
+class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
 
-  startWith(WaitingForNewSession, WaitingBag(1))
+  startWith(WaitingForNewSession, SessionWaitingBag(List(), 1, true))
 
   when(WaitingForNewSession) {
-    case Event(p: Connect, bag: WaitingBag) => {
-      val result = if (p.client_id.length == 0 && p.connect_flags.clean_session == false) 2 else 0
+    case Event(p: Connect, bag: SessionWaitingBag) => {
+      val status = if (p.client_id.length == 0 && p.connect_flags.clean_session == false) 2 else 0
+      val result = if (p.connect_flags.clean_session == false && status == 0 && bag.clean_session == false) status + 256 else status
 
       sender ! Connack(Header(false, 0, false), result)
 
-      if (result == 0) {
-        goto(SessionConnected) using SessionConnectedBag(sender, bag.message_id)
-      } else {
+      if (status == 0) {
 
+        if (p.connect_flags.clean_session == false)
+          bag.stashed.foreach(x => {
+            log.info("publishing stashed " + x)
+            self ! x
+          })
+
+        goto(SessionConnected) using SessionConnectedBag(sender, p.connect_flags.clean_session, bag.message_id)
+      } else {
         stay
       }
     }
@@ -45,31 +54,12 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
       sender ! WrongState()
       stay
     }
-  }
 
-  when(IdleSession) {
-
-    case Event(p: Connect, bag: WaitingBag) => {
-      val status = if (p.client_id.length == 0 && p.connect_flags.clean_session == false) 2 else 0
-      val result = if (p.connect_flags.clean_session == false && status == 0) status + 256 else status
-
-      sender ! Connack(Header(false, 0, false), result)
-
-      if (status == 0) {
-        unstashAll()
-
-        goto(SessionConnected) using SessionConnectedBag(sender, bag.message_id)
-      } else {
-        stay
-      }
-    }
-
-    case Event(p @ (Packet | PublishPayload), _) => {
+    case Event(p: PublishPayload, b: SessionWaitingBag) => {
 
       log.info("stashing " + p)
 
-      stash()
-      stay
+      goto(WaitingForNewSession) using (SessionWaitingBag(b.stashed :+ p, b.message_id, b.clean_session))
     }
   }
 
@@ -92,7 +82,12 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
         sender ! Pubrec(Header(false, 0, false), p.message_identifier)
       }
 
-      bus ! BusPublish(p.topic, p, p.header.retain, p.payload.length == 0)
+      if (p.payload.length == 0 && p.header.retain == false) {
+        log.warning("got message with retain false and empty payload")
+      }
+
+      bus ! BusPublish(p.topic, p, p.header.retain, p.header.retain == true && p.payload.length == 0)
+
       stay
     }
 
@@ -138,7 +133,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
 
       if (qos > 0) {
         log.info("incrementing message id to " + (b.message_id + 1))
-        goto(SessionConnected) using (SessionConnectedBag(b.connection, b.message_id + 1))
+        goto(SessionConnected) using b.copy(message_id = b.message_id + 1)
       } else {
         stay
       }
@@ -147,35 +142,39 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] with Sta
 
   whenUnhandled {
 
-    case Event(c@ConnectionLost(), _) => {
+    case Event(c@ConnectionLost(), b) => {
       log.info("idle")
 
-      goto(IdleSession) using WaitingBag(1)
+      goto(WaitingForNewSession) using SessionWaitingBag(List(), 1, b.clean_session)
     }
 
-    case Event(r@ResetSession(), _) => {
+    case Event(r@ResetSession(), b) => {
 
       log.info("Resetting state")
 
-      bus ! BusDeattach(self)
+      if (b.clean_session == true)
+        bus ! BusDeattach(self)
 
-      goto(WaitingForNewSession) using (WaitingBag(1))
+      goto(WaitingForNewSession) using (SessionWaitingBag(List(), 1, b.clean_session))
     }
 
 
-    case Event(d@Disconnect(_), _) => {
+    case Event(d@Disconnect(_), b) => {
 
       log.info("Disonnecting state")
 
-      bus ! BusDeattach(self)
+      if (b.clean_session == true) {
+        bus ! BusDeattach(self)
+      }
 
-      goto(WaitingForNewSession) using (WaitingBag(1))
+      goto(WaitingForNewSession) using (SessionWaitingBag(List(), 1, b.clean_session))
     }
 
-    case Event(x, _) => {
+
+    case Event(x, b) => {
       log.error("unexpected message " + x + " for " + stateName)
 
-      goto(WaitingForNewSession) using (WaitingBag(1))
+      goto(WaitingForNewSession) using (SessionWaitingBag(List(), 1, b.clean_session))
     }
   }
 

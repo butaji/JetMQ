@@ -21,7 +21,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
 
       expectMsg(PublishPayload("hello", false))
 
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -38,7 +38,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       bus ! BusPublish("sport/tennis/player1/score/wimbledon", "3")
       expectMsg(PublishPayload("3", false))
 
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -52,7 +52,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
 
       bus ! BusPublish("sport/tennis/player2/ranking", "2")
 
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -63,13 +63,13 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       bus ! BusPublish("sport", "1")
       expectMsg(PublishPayload("1", false))
 
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
 
       bus ! BusSubscribe("#", self)
       bus ! BusPublish("sport", "2")
       expectMsg(PublishPayload("2", false))
 
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -86,7 +86,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       bus ! BusPublish("dw/1/2/3/values", "3")
       expectMsg(PublishPayload("3", false))
 
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -98,7 +98,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       bus ! BusPublish("sport/tennis/123", "1")
       expectMsg(PublishPayload("1", false))
 
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -123,7 +123,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
 
       bus ! BusPublish("sport/tennis/player1/ranking", "3")
 
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -132,7 +132,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       val bus = system.actorOf(Props[EventBusActor])
       bus ! BusSubscribe("sport/+", self)
       bus ! BusPublish("sport", "1")
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
 
       bus ! BusPublish("sport/", "2")
       expectMsg(PublishPayload("2", false))
@@ -165,7 +165,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       val bus = system.actorOf(Props[EventBusActor])
       bus ! BusSubscribe("+", self)
       bus ! BusPublish("/finance", "1")
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
 
       success
     }
@@ -205,7 +205,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       val bus = system.actorOf(Props[EventBusActor])
 
       bus ! BusSubscribe("game/score", self)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
 
       bus ! BusUnsubscribe("game/score", self)
 
@@ -228,7 +228,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       val bus = system.actorOf(Props[EventBusActor])
 
       bus ! BusSubscribe("game/score", self)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
 
       bus ! BusUnsubscribe("game/score", self)
 
@@ -246,10 +246,10 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       bus ! BusUnsubscribe("game/score", self)
 
       bus ! BusSubscribe("game/score", self)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
 
       bus ! BusSubscribe("#", self)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
 
       success
 
@@ -259,22 +259,22 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       val bus = system.actorOf(Props[EventBusActor])
 
       bus ! BusSubscribe("/#", self)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
 
       bus ! BusUnsubscribe("/Topic/C", self)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
 
       bus ! BusPublish("TopicA/B", "1", true)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
 
       bus ! BusPublish("TopicA/B", "2", false)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
 
       bus ! BusPublish("Topic/C", "3", true)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
 
       bus ! BusPublish("TopicA", "4", false)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
 
       bus ! BusPublish("/TopicA", "5", false)
       expectMsg(PublishPayload("5", false))
@@ -286,7 +286,7 @@ class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificat
       expectMsg(PublishPayload("6", false))
 
       bus ! BusPublish("TopicA/C", "7", true)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
 
       bus ! BusPublish("/TopicA", "8", true)
       expectMsg(PublishPayload("8", false))

@@ -29,7 +29,7 @@ class FullOfflineSpec extends TestKit(ActorSystem()) with ImplicitSender with Sp
 
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -41,7 +41,7 @@ class FullOfflineSpec extends TestKit(ActorSystem()) with ImplicitSender with Sp
 
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -56,7 +56,7 @@ class FullOfflineSpec extends TestKit(ActorSystem()) with ImplicitSender with Sp
 
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -72,7 +72,7 @@ class FullOfflineSpec extends TestKit(ActorSystem()) with ImplicitSender with Sp
       h ! "e000".toTcpReceived //DISCONNECT
 
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -94,7 +94,7 @@ class FullOfflineSpec extends TestKit(ActorSystem()) with ImplicitSender with Sp
 
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -115,7 +115,7 @@ class FullOfflineSpec extends TestKit(ActorSystem()) with ImplicitSender with Sp
       h ! "70020002".toTcpReceived //PUBCOMP
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 

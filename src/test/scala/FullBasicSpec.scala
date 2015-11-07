@@ -29,7 +29,7 @@ class FullBasicSpec extends TestKit(ActorSystem()) with ImplicitSender with Spec
 
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -41,7 +41,7 @@ class FullBasicSpec extends TestKit(ActorSystem()) with ImplicitSender with Spec
 
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -56,7 +56,7 @@ class FullBasicSpec extends TestKit(ActorSystem()) with ImplicitSender with Spec
 
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -68,7 +68,7 @@ class FullBasicSpec extends TestKit(ActorSystem()) with ImplicitSender with Spec
 
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -105,7 +105,7 @@ class FullBasicSpec extends TestKit(ActorSystem()) with ImplicitSender with Spec
       h ! "70020002".toTcpReceived //PUBCOMP
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -117,7 +117,7 @@ class FullBasicSpec extends TestKit(ActorSystem()) with ImplicitSender with Spec
 
       h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //CONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -126,7 +126,7 @@ class FullBasicSpec extends TestKit(ActorSystem()) with ImplicitSender with Spec
 
       h ! "10140002686a04020000000a6d79636c69656e746964".toTcpReceived //CONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
   }

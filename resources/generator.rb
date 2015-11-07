@@ -20,6 +20,6 @@ res.each { |i, l|
     end
   }
 
-  puts "\texpectMsg(Tcp.Close)\n\texpectNoMsg()\n\tsuccess\n}\n\n"
+  puts "\texpectMsg(Tcp.Close)\n\texpectNoMsg(Bag.wait_time)\n\tsuccess\n}\n\n"
 
 }

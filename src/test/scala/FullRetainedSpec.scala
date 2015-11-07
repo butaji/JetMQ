@@ -29,7 +29,7 @@ class FullRetainedSpec extends TestKit(ActorSystem()) with ImplicitSender with S
 
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -41,7 +41,7 @@ class FullRetainedSpec extends TestKit(ActorSystem()) with ImplicitSender with S
 
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -56,7 +56,7 @@ class FullRetainedSpec extends TestKit(ActorSystem()) with ImplicitSender with S
 
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -92,7 +92,7 @@ class FullRetainedSpec extends TestKit(ActorSystem()) with ImplicitSender with S
 
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
@@ -117,7 +117,7 @@ class FullRetainedSpec extends TestKit(ActorSystem()) with ImplicitSender with S
 
       h ! "e000".toTcpReceived //DISCONNECT
       expectMsg(Tcp.Close)
-      expectNoMsg()
+      expectNoMsg(Bag.wait_time)
       success
     }
 
