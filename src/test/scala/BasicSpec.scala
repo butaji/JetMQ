@@ -8,7 +8,7 @@ import net.jetmq.SessionsManagerActor
 import org.specs2.mutable._
 import org.specs2.specification.Scope
 
-class FullBasicSpec extends TestKit(ActorSystem()) with ImplicitSender with SpecificationLike with Scope {
+class BasicSpec extends TestKit(ActorSystem()) with ImplicitSender with SpecificationLike with Scope {
 
   sequential //state dependant
 
