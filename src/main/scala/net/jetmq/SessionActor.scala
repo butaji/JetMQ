@@ -62,9 +62,8 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
                 sender ! pp
               }
               case Right(p) => {
-                val pp = p.copy(header = p.header.copy(dup = true))
-                log.info("publishing sending " + pp)
-                sender ! pp
+                log.info("publishing sending " + p)
+                sender ! p
               }
             }
 
