@@ -4,10 +4,17 @@ import net.jetmq.broker.PacketsHelper
 import scodec.bits.BitVector
 import net.jetmq.Helpers._
 
-object Main {
+object Generator {
 
-  def main(args: Array[String]) {
-    val lines = io.Source.fromFile(args(0)).getLines.map(x => x.split('\t'))
+  // commented to not disturb sbt run
+
+//  def main(args: Array[String]) {
+//    run(args(0))
+//  }
+
+  def run(path: String) = {
+
+    val lines = io.Source.fromFile(path).getLines.map(x => x.split('\t'))
 
     lines.filter(x => x.length > 5)
       .toList
