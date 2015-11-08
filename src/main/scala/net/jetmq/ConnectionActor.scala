@@ -97,6 +97,15 @@ class ConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Connectio
 
       stay
     }
+
+    case Event(KeepAliveTimeout, b: ConnectionSessionBag) => {
+      log.info("Keep alive timed out. Closing connection")
+
+      b.connection ! Close
+
+      stay
+    }
+
   }
 
   when(Waiting) {
@@ -139,6 +148,7 @@ class ConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Connectio
   }
 
   whenUnhandled {
+
 
     case Event(Closed, b) => {
 

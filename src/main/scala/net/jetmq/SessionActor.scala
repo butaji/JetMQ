@@ -15,22 +15,26 @@ case object SessionConnected extends SessionState
 
 sealed trait SessionBag {
   val message_id: Int;
-  val clean_session: Boolean
+  val clean_session: Boolean;
+  val sending: List[Either[Publish, Pubrel]]
 }
 
-case class SessionWaitingBag(stashed: List[PublishPayload], message_id: Int, clean_session: Boolean) extends SessionBag
+case class SessionWaitingBag(sending: List[Either[Publish, Pubrel]], stashed: List[PublishPayload], message_id: Int, clean_session: Boolean) extends SessionBag
 
-case class SessionConnectedBag(connection: ActorRef, clean_session: Boolean, message_id: Int, last_packet: Long, will: Option[Publish]) extends SessionBag
+case class SessionConnectedBag(connection: ActorRef, clean_session: Boolean, message_id: Int, last_packet: Long, sending: List[Either[Publish, Pubrel]], will: Option[Publish]) extends SessionBag
 
 case object ConnectionLost
 
 case object WrongState
 
 case class CheckKeepAlive(period: FiniteDuration)
+case object KeepAliveTimeout
+
+case object TrySending
 
 class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
 
-  startWith(WaitingForNewSession, SessionWaitingBag(List(), 1, true))
+  startWith(WaitingForNewSession, SessionWaitingBag(List(), List(), 1, true))
 
   when(WaitingForNewSession) {
     case Event(c: Connect, bag: SessionWaitingBag) => {
@@ -42,9 +46,28 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
       if (status == 0) {
 
         if (c.connect_flags.clean_session == false) {
+          log.info("current stashed is " + bag.stashed)
           bag.stashed.foreach(x => {
             log.info("publishing stashed " + x)
             self ! x
+          })
+
+          log.info("current sending is " + bag.sending)
+          bag.sending.foreach(x => {
+
+            x match {
+              case Left(p) => {
+                val pp = p.copy(header = p.header.copy(dup = true))
+                log.info("publishing sending " + pp)
+                sender ! pp
+              }
+              case Right(p) => {
+                val pp = p.copy(header = p.header.copy(dup = true))
+                log.info("publishing sending " + pp)
+                sender ! pp
+              }
+            }
+
           })
         }
 
@@ -60,7 +83,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
                         Header(false, c.connect_flags.will_qos, c.connect_flags.will_retain), c.topic.get,0, c.message.get.toByteVector))
                     else None
 
-        goto(SessionConnected) using SessionConnectedBag(sender, c.connect_flags.clean_session, bag.message_id,System.currentTimeMillis ,will)
+        goto(SessionConnected) using SessionConnectedBag(sender, c.connect_flags.clean_session, bag.message_id,System.currentTimeMillis, List() ,will)
       } else {
         stay
       }
@@ -79,7 +102,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
         val sp = p.copy(payload = pp.copy(header = pp.header.copy(dup = true)))
         log.info("stashing " + sp)
 
-        goto(WaitingForNewSession) using (SessionWaitingBag(b.stashed :+ sp, b.message_id, b.clean_session))
+        goto(WaitingForNewSession) using b.copy(stashed = b.stashed :+ sp)
       } else {
         log.info("skipping stash " + p)
 
@@ -103,6 +126,8 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
       } else {
 
         log.info("checking keepalive is NOT ok")
+
+        b.connection ! KeepAliveTimeout
 
         self ! ConnectionLost
 
@@ -137,9 +162,16 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
     }
 
     case Event(p: Pubrec, b:SessionConnectedBag) => {
-      sender ! Pubrel(Header(false, 1, false), p.message_identifier)
+      val pubrel = Pubrel(Header(false, 1, false), p.message_identifier)
 
-      stay using b.copy(last_packet = System.currentTimeMillis())
+      b.connection ! pubrel
+
+      stay using b.copy(last_packet = System.currentTimeMillis(), sending = b.sending.filter(x => {
+        x match {
+          case Left(publish) if publish.message_identifier == p.message_identifier => true
+          case _ => false
+        }
+      }) :+ Right(pubrel))
     }
 
     case Event(p: Pubrel, b:SessionConnectedBag) => {
@@ -151,13 +183,23 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
     case Event(p: Puback, b:SessionConnectedBag) => {
       log.info("doing nothing for received " + p)
 
-      stay using b.copy(last_packet = System.currentTimeMillis())
+      stay using b.copy(last_packet = System.currentTimeMillis(), sending = b.sending.filter(x => {
+        x match {
+          case Left(publish) if publish.message_identifier == p.message_identifier => true
+          case _ => false
+        }
+      }))
     }
 
     case Event(p: Pubcomp, b:SessionConnectedBag) => {
       log.info("doing nothing for received " + p)
 
-      stay using b.copy(last_packet = System.currentTimeMillis())
+      stay using b.copy(last_packet = System.currentTimeMillis(), sending = b.sending.filter(x => {
+        x match {
+          case Right(pubrel) if pubrel.message_identifier == p.message_identifier => true
+          case _ => false
+        }
+      }))
     }
 
     case Event(p: Unsubscribe, b:SessionConnectedBag) => {
@@ -180,11 +222,12 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
       val qos = p.header.qos min x.qos
 
       val publish = Publish(Header(p.header.dup, qos, x.auto), p.topic, if (qos == 0) 0 else b.message_id, p.payload)
+
       b.connection ! publish
 
       if (qos > 0) {
         log.info("incrementing message id to " + (b.message_id + 1))
-        goto(SessionConnected) using b.copy(message_id = b.message_id + 1)
+        stay using b.copy(message_id = b.message_id + 1, sending = b.sending :+ Left(publish))
       } else {
         stay
       }
@@ -201,7 +244,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
         bus ! BusPublish(p.topic, p, p.header.retain, p.header.retain == true && p.payload.length == 0)
       }
 
-      goto(WaitingForNewSession) using SessionWaitingBag(List(), 1, b.clean_session)
+      goto(WaitingForNewSession) using SessionWaitingBag(b.sending, List(), 1, b.clean_session)
     }
   }
 
@@ -214,7 +257,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
       if (b.clean_session == true)
         bus ! BusDeattach(self)
 
-      goto(WaitingForNewSession) using (SessionWaitingBag(List(), 1, b.clean_session))
+      goto(WaitingForNewSession) using (SessionWaitingBag(b.sending, List(), 1, b.clean_session))
     }
 
 
@@ -226,14 +269,14 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
         bus ! BusDeattach(self)
       }
 
-      goto(WaitingForNewSession) using (SessionWaitingBag(List(), 1, b.clean_session))
+      goto(WaitingForNewSession) using (SessionWaitingBag(b.sending, List(), 1, b.clean_session))
     }
 
 
     case Event(x, b) => {
       log.error("unexpected message " + x + " for " + stateName)
 
-      goto(WaitingForNewSession) using (SessionWaitingBag(List(), 1, b.clean_session))
+      goto(WaitingForNewSession) using (SessionWaitingBag(b.sending, List(), 1, b.clean_session))
     }
   }
 

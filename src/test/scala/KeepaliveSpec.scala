@@ -76,6 +76,7 @@ class KeepaliveSpec extends TestKit(ActorSystem()) with ImplicitSender with Spec
       h2 ! "820c000200072f546f7069634102".toTcpReceived //Subscribe(Header(false,1,false),2,Vector((/TopicA,2)))
       expectMsg("9003000202".toTcpWrite) //Suback(Header(false,0,false),2,Vector(2))
 
+      expectMsg(Bag.ten_sec, Tcp.Close)
       expectMsg(Bag.ten_sec, "341b00072f546f7069634100016b656570616c69766520657870697279".toTcpWrite) //Publish(Header(false,2,false),/TopicA,1,ByteVector(16 bytes, 0x6b656570616c69766520657870697279))
 
       h2 ! "50020001".toTcpReceived //Pubrec(Header(false,0,false),1)
