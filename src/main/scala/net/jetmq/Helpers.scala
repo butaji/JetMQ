@@ -1,9 +1,11 @@
 package net.jetmq
 
+import java.nio.charset.StandardCharsets
+
 import akka.io.Tcp
 import akka.util.ByteString
 import scodec.Attempt
-import scodec.bits.BitVector
+import scodec.bits.{BitVector, ByteVector}
 
 object Helpers {
 
@@ -35,6 +37,13 @@ object Helpers {
       s.replaceAll("[^0-9A-Fa-f]", "").sliding(2, 2).toArray.map(Integer.parseInt(_, 16).toByte)
     }
 
+    def toByteVector(): ByteVector = {
+      ByteVector.encodeString(s)(StandardCharsets.UTF_8) match {
+        case Right(res) => return res
+        case Left(x) => throw x
+      }
+    }
+
     def toByteSring(): ByteString = {
       ByteString(s.toBin)
     }
@@ -50,4 +59,5 @@ object Helpers {
     }
 
   }
+
 }

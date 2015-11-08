@@ -18,7 +18,7 @@ case class Header(dup: Boolean, qos: Int, retain: Boolean) {
 case class ConnectFlags(username: Boolean,
                         password: Boolean,
                         will_retain: Boolean,
-                        qos: Int,
+                        will_qos: Int,
                         will_flag: Boolean,
                         clean_session: Boolean,
                         keep_alive: Int)

@@ -3,6 +3,7 @@ package net.jetmq
 import akka.actor.{ActorRef, FSM}
 import net.jetmq.broker._
 import net.jetmq.packets._
+import net.jetmq.Helpers._
 
 case class ResetSession()
 
@@ -19,7 +20,7 @@ sealed trait SessionBag {
 
 case class SessionWaitingBag(stashed: List[PublishPayload], message_id: Int, clean_session: Boolean) extends SessionBag
 
-case class SessionConnectedBag(connection: ActorRef, clean_session: Boolean, message_id: Int) extends SessionBag
+case class SessionConnectedBag(connection: ActorRef, clean_session: Boolean, message_id: Int, will: Option[Publish]) extends SessionBag
 
 case class ConnectionLost()
 
@@ -30,21 +31,27 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
   startWith(WaitingForNewSession, SessionWaitingBag(List(), 1, true))
 
   when(WaitingForNewSession) {
-    case Event(p: Connect, bag: SessionWaitingBag) => {
-      val status = if (p.client_id.length == 0 && p.connect_flags.clean_session == false) 2 else 0
-      val result = if (p.connect_flags.clean_session == false && status == 0 && bag.clean_session == false) status + 256 else status
+    case Event(c: Connect, bag: SessionWaitingBag) => {
+      val status = if (c.client_id.length == 0 && c.connect_flags.clean_session == false) 2 else 0
+      val result = if (c.connect_flags.clean_session == false && status == 0 && bag.clean_session == false) status + 256 else status
 
       sender ! Connack(Header(false, 0, false), result)
 
       if (status == 0) {
 
-        if (p.connect_flags.clean_session == false)
+        if (c.connect_flags.clean_session == false)
           bag.stashed.foreach(x => {
             log.info("publishing stashed " + x)
             self ! x
           })
 
-        goto(SessionConnected) using SessionConnectedBag(sender, p.connect_flags.clean_session, bag.message_id)
+        val will = if (c.connect_flags.will_flag == true)
+                    Some(
+                      Publish(
+                        Header(false, c.connect_flags.will_qos, c.connect_flags.will_retain), c.topic.get,0, c.message.get.toByteVector))
+                    else None
+
+        goto(SessionConnected) using SessionConnectedBag(sender, c.connect_flags.clean_session, bag.message_id, will)
       } else {
         stay
       }
@@ -151,8 +158,16 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
 
   whenUnhandled {
 
-    case Event(c@ConnectionLost(), b) => {
+    case Event(c@ConnectionLost(), b: SessionConnectedBag) => {
       log.info("idle")
+
+      if (b.will != None) {
+        val p = b.will.get.copy(message_identifier = b.message_id)
+
+        log.info("publishing will " + p)
+
+        bus ! BusPublish(p.topic, p, p.header.retain, p.header.retain == true && p.payload.length == 0)
+      }
 
       goto(WaitingForNewSession) using SessionWaitingBag(List(), 1, b.clean_session)
     }
