@@ -12,9 +12,11 @@ RUN yum install git sbt -y
 RUN mkdir -p /root/.ssh/
 RUN echo -e "Host github.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config
 
-RUN git clone http://github.com/butaji/JetMQ ~/app
-
+RUN mkdir ~/app
 WORKDIR ~/app
+
+RUN git clone http://github.com/butaji/JetMQ
+
 RUN sbt "run-main net.jetmq.broker.Main" | tee app.log
 
 EXPOSE 1883
