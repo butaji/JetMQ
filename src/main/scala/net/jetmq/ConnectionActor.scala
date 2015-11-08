@@ -6,7 +6,6 @@ import akka.pattern.ask
 import akka.util.Timeout
 import net.jetmq.Helpers._
 import net.jetmq.packets.{Connect, Disconnect, Header, Packet}
-import net.jetmq.{ConnectionLost, WrongState}
 import scodec.Attempt.{Failure, Successful}
 import scodec.DecodeResult
 
@@ -86,12 +85,12 @@ class ConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Connectio
     case Event(PeerClosed, b: ConnectionSessionBag) => {
       log.info("peer closed")
 
-      b.session ! ConnectionLost()
+      b.session ! ConnectionLost
 
       stop
     }
 
-    case Event(_: WrongState, b: ConnectionSessionBag) => {
+    case Event(WrongState, b: ConnectionSessionBag) => {
       log.info("Session was in a wrong state")
 
       b.connection ! Close

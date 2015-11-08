@@ -1,9 +1,9 @@
-package net.jetmq
+package net.jetmq.broker
 
 import akka.actor.{ActorRef, FSM}
-import net.jetmq.broker._
-import net.jetmq.packets._
 import net.jetmq.Helpers._
+import net.jetmq.packets._
+import scala.concurrent.duration._
 
 case class ResetSession()
 
@@ -20,11 +20,13 @@ sealed trait SessionBag {
 
 case class SessionWaitingBag(stashed: List[PublishPayload], message_id: Int, clean_session: Boolean) extends SessionBag
 
-case class SessionConnectedBag(connection: ActorRef, clean_session: Boolean, message_id: Int, will: Option[Publish]) extends SessionBag
+case class SessionConnectedBag(connection: ActorRef, clean_session: Boolean, message_id: Int, last_packet: Long, will: Option[Publish]) extends SessionBag
 
-case class ConnectionLost()
+case object ConnectionLost
 
-case class WrongState()
+case object WrongState
+
+case class CheckKeepAlive(period: FiniteDuration)
 
 class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
 
@@ -39,11 +41,18 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
 
       if (status == 0) {
 
-        if (c.connect_flags.clean_session == false)
+        if (c.connect_flags.clean_session == false) {
           bag.stashed.foreach(x => {
             log.info("publishing stashed " + x)
             self ! x
           })
+        }
+
+        if (c.connect_flags.keep_alive > 0) {
+          val delay = c.connect_flags.keep_alive.seconds
+
+          context.system.scheduler.scheduleOnce(delay, self, CheckKeepAlive(delay))(context.system.dispatcher)
+        }
 
         val will = if (c.connect_flags.will_flag == true)
                     Some(
@@ -51,14 +60,14 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
                         Header(false, c.connect_flags.will_qos, c.connect_flags.will_retain), c.topic.get,0, c.message.get.toByteVector))
                     else None
 
-        goto(SessionConnected) using SessionConnectedBag(sender, c.connect_flags.clean_session, bag.message_id, will)
+        goto(SessionConnected) using SessionConnectedBag(sender, c.connect_flags.clean_session, bag.message_id,System.currentTimeMillis ,will)
       } else {
         stay
       }
     }
 
     case Event(p: Packet, _) => {
-      sender ! WrongState()
+      sender ! WrongState
       stay
     }
 
@@ -81,14 +90,34 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
 
   when(SessionConnected) {
 
-    case Event(p: Subscribe, _) => {
+    case Event(CheckKeepAlive(delay), b:SessionConnectedBag) => {
+
+      log.info("Last package was " + new java.util.Date(b.last_packet))
+
+      if ((System.currentTimeMillis() - delay.toMillis) < b.last_packet) {
+        log.info("checking keepalive OK")
+
+        context.system.scheduler.scheduleOnce(delay, self, CheckKeepAlive(delay))(context.system.dispatcher)
+
+        stay
+      } else {
+
+        log.info("checking keepalive is NOT ok")
+
+        self ! ConnectionLost
+
+        stay
+      }
+    }
+
+    case Event(p: Subscribe, b:SessionConnectedBag) => {
       p.topics.foreach(t => bus ! BusSubscribe(t._1, self, t._2))
 
       sender ! Suback(Header(false, 0, false), p.message_identifier, p.topics.map(x => x._2))
-      stay
+      stay using b.copy(last_packet = System.currentTimeMillis())
     }
 
-    case Event(p: Publish, _) => {
+    case Event(p: Publish, b:SessionConnectedBag) => {
 
       if (p.header.qos == 1) {
         sender ! Puback(Header(false, 0, false), p.message_identifier)
@@ -104,40 +133,46 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
 
       bus ! BusPublish(p.topic, p, p.header.retain, p.header.retain == true && p.payload.length == 0)
 
-      stay
+      stay using b.copy(last_packet = System.currentTimeMillis())
     }
 
-    case Event(p: Pubrec, _) => {
+    case Event(p: Pubrec, b:SessionConnectedBag) => {
       sender ! Pubrel(Header(false, 1, false), p.message_identifier)
-      stay
+
+      stay using b.copy(last_packet = System.currentTimeMillis())
     }
 
-    case Event(p: Pubrel, _) => {
+    case Event(p: Pubrel, b:SessionConnectedBag) => {
       sender ! Pubcomp(Header(false, 0, false), p.message_identifier)
-      stay
+
+      stay using b.copy(last_packet = System.currentTimeMillis())
     }
 
-    case Event(p: Puback, _) => {
+    case Event(p: Puback, b:SessionConnectedBag) => {
       log.info("doing nothing for received " + p)
-      stay
+
+      stay using b.copy(last_packet = System.currentTimeMillis())
     }
 
-    case Event(p: Pubcomp, _) => {
+    case Event(p: Pubcomp, b:SessionConnectedBag) => {
       log.info("doing nothing for received " + p)
-      stay
+
+      stay using b.copy(last_packet = System.currentTimeMillis())
     }
 
-    case Event(p: Unsubscribe, _) => {
+    case Event(p: Unsubscribe, b:SessionConnectedBag) => {
 
       p.topics.foreach(t => bus ! BusUnsubscribe(t, self))
 
       sender ! Unsuback(Header(false, 0, false), p.message_identifier)
-      stay
+
+      stay using b.copy(last_packet = System.currentTimeMillis())
     }
 
-    case Event(p: Pingreq, _) => {
+    case Event(p: Pingreq, b:SessionConnectedBag) => {
       sender ! Pingresp(Header(false, 0, false))
-      stay
+
+      stay using b.copy(last_packet = System.currentTimeMillis())
     }
 
     case Event(x@PublishPayload(p: Publish, _, _), b: SessionConnectedBag) => {
@@ -154,11 +189,8 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
         stay
       }
     }
-  }
 
-  whenUnhandled {
-
-    case Event(c@ConnectionLost(), b: SessionConnectedBag) => {
+    case Event(ConnectionLost, b: SessionConnectedBag) => {
       log.info("idle")
 
       if (b.will != None) {
@@ -171,6 +203,9 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
 
       goto(WaitingForNewSession) using SessionWaitingBag(List(), 1, b.clean_session)
     }
+  }
+
+  whenUnhandled {
 
     case Event(r@ResetSession(), b) => {
 
@@ -205,6 +240,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
   onTransition(handler _)
 
   def handler(from: SessionState, to: SessionState): Unit = {
+
     log.info("State changed from " + from + " to " + to)
   }
 
