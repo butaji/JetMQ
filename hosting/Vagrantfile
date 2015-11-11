@@ -5,8 +5,8 @@ Vagrant.configure(2) do |config|
   config.vm.network "forwarded_port", guest: 1883, host: 1883
 
   config.vm.provider "parallels" do |prl|
-    prl.memory = 512
-    prl.cpus = 1
+#    prl.memory = 768
+#    prl.cpus = 1
   end
   
   config.vm.provision "docker" do |d|

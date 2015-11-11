@@ -14,7 +14,7 @@ class ServerActor extends Actor with ActorLogging {
   val bus = system.actorOf(Props[EventBusActor], name = "event-bus")
   val sessions = system.actorOf(Props(new SessionsManagerActor(bus)), name = "sessions")
 
-  IO(Tcp) ! Bind(self, new InetSocketAddress("localhost", 1883))
+  IO(Tcp) ! Bind(self, new InetSocketAddress("0.0.0.0", 1883))
 
   def receive = {
 
