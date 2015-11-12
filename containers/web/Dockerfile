@@ -9,4 +9,4 @@ WORKDIR JetMQ/www
 
 RUN npm install
 
-CMD node index.js | app.log
+CMD node index.js
