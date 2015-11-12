@@ -16,8 +16,8 @@ WORKDIR /app
 RUN git clone http://github.com/butaji/JetMQ
 
 WORKDIR JetMQ
-
-RUN sbt compile -mem 730 | tee -a app.log
-RUN sbt "run-main net.jetmq.broker.Main" -mem 730 | tee -a app.log
-
 EXPOSE 1883
+
+RUN sbt compile
+CMD sbt "run-main net.jetmq.broker.Main" | tee -a app.log
+

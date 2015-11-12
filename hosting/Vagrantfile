@@ -10,6 +10,6 @@ Vagrant.configure(2) do |config|
   end
   
   config.vm.provision "docker" do |d|
-    d.build_image "v"
+    d.build_image "v", args: "-t \"jetmq\""
   end
 end
