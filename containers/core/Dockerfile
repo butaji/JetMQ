@@ -20,4 +20,3 @@ EXPOSE 1883
 
 RUN sbt compile
 CMD sbt "run-main net.jetmq.broker.Main" | tee -a app.log
-

@@ -1,6 +1,7 @@
 app.log
 
 
+**/node_modules
 **/.vagrant
 
 bin
