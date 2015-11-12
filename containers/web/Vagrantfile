@@ -2,7 +2,7 @@ Vagrant.configure(2) do |config|
   config.vm.box = "yungsang/coreos"
   config.vm.synced_folder ".", "/home/core/v", id: "core", :nfs => true,  :mount_options   => ['nolock,vers=3,udp']
 
-  config.vm.network "forwarded_port", guest: 1883, host: 1883
+  config.vm.network "forwarded_port", guest: 3000, host: 3000
 
   config.vm.provider "parallels" do |prl|
 #    prl.memory = 768
@@ -10,6 +10,6 @@ Vagrant.configure(2) do |config|
   end
   
   config.vm.provision "docker" do |d|
-    d.build_image "v", args: "-t \"jetmq\""
+    d.build_image "v", args: "-t \"jetmqweb\""
   end
 end
