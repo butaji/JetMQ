@@ -26,9 +26,10 @@ object Generator {
 
   def decode(p: String): String = {
     try {
-      PacketsHelper.decode(BitVector(p.toBin)).require.value.toString()
+      val packets = PacketsHelper.decode(BitVector(p.toBin))
+        packets.mkString(", ")
     } catch {
-      case _ => return "Broken package"
+      case _: Throwable => return "Broken package"
     }
 
   }

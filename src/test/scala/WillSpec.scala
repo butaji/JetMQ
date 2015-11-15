@@ -18,7 +18,7 @@ class WillSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
     val devices = system.actorOf(Props(new SessionsManagerActor(bus)), "devices")
 
     def create_actor(name: String) = {
-      system.actorOf(Props(new ConnectionActor(devices)), name)
+      system.actorOf(Props(new TcpConnectionActor(devices)).withMailbox("priority-dispatcher"), name)
     }
 
     "Scenario 53180" in {

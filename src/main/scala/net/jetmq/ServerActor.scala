@@ -31,7 +31,9 @@ class ServerActor extends Actor with ActorLogging {
 
       log.info("client connected " + remote)
 
-      val handler = system.actorOf(Props(new ConnectionActor(sessions)), remote.getHostString + ":" + remote.getPort)
+      val handler = system.actorOf(
+        Props(new TcpConnectionActor(sessions)).withMailbox("priority-dispatcher"),
+        remote.getHostString + ":" + remote.getPort)
       sender ! Register(handler)
     }
   }

@@ -18,7 +18,7 @@ class OfflineSpec extends TestKit(ActorSystem()) with ImplicitSender with Specif
     val devices = system.actorOf(Props(new SessionsManagerActor(bus)), "devices")
 
     def create_actor(name: String) = {
-      system.actorOf(Props(new ConnectionActor(devices)), name)
+      system.actorOf(Props(new TcpConnectionActor(devices)).withMailbox("priority-dispatcher"), name)
     }
 
     "Scenario 53663" in {

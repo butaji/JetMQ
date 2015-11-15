@@ -18,7 +18,7 @@ class BasicSpec extends TestKit(ActorSystem()) with ImplicitSender with Specific
     val devices = system.actorOf(Props(new SessionsManagerActor(bus)), "devices")
 
     def create_actor(name: String) = {
-      system.actorOf(Props(new ConnectionActor(devices)), name)
+      system.actorOf(Props(new TcpConnectionActor(devices)).withMailbox("priority-dispatcher"), name)
     }
 
     "Scenario 51208" in {
@@ -82,15 +82,16 @@ class BasicSpec extends TestKit(ActorSystem()) with ImplicitSender with Specific
       expectMsg("9003000202".toTcpWrite) //Suback(Header(false,0,false),2,Vector(2))
 
       h ! "300d0006546f70696341716f732030320f0006546f706963410003716f732031340f0006546f706963410004716f732032".toTcpReceived //Publish(Header(false,0,false),TopicA,0,ByteVector(5 bytes, 0x716f732030))
-      expectMsg("300d0006546f70696341716f732030".toTcpWrite) //Publish(Header(false,0,false),TopicA,0,ByteVector(5 bytes, 0x716f732030))
       expectMsg("40020003".toTcpWrite) //Puback(Header(false,0,false),3)
-      expectMsg("320f0006546f706963410001716f73203150020004".toTcpWrite) //Publish(Header(false,1,false),TopicA,1,ByteVector(5 bytes, 0x716f732031))
+      expectMsg("50020004".toTcpWrite) //Pubrec
+      expectMsg("300d0006546f70696341716f732030".toTcpWrite) //Publish(Header(false,0,false),TopicA,0,ByteVector(5 bytes, 0x716f732030))
+      expectMsg("320f0006546f706963410001716f732031".toTcpWrite) //Publish(Header(false,1,false),TopicA,1,ByteVector(5 bytes, 0x716f732031))
 
       h ! "40020001".toTcpReceived //Puback(Header(false,0,false),1)
 
       h ! "62020004".toTcpReceived //Pubrel(Header(false,1,false),4)
-      expectMsg("70020004".toTcpWrite) //Pubcomp(Header(false,0,false),4)
       expectMsg("340f0006546f706963410002716f732032".toTcpWrite) //Publish(Header(false,2,false),TopicA,2,ByteVector(5 bytes, 0x716f732032))
+      expectMsg("70020004".toTcpWrite) //Pubcomp(Header(false,0,false),4)
 
       h ! "50020002".toTcpReceived //Pubrec(Header(false,0,false),2)
       expectMsg("62020002".toTcpWrite) //Pubrel(Header(false,1,false),2)

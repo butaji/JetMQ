@@ -18,7 +18,7 @@ class OverlappingSpec extends TestKit(ActorSystem()) with ImplicitSender with Sp
     val devices = system.actorOf(Props(new SessionsManagerActor(bus)), "devices")
 
     def create_actor(name: String) = {
-      system.actorOf(Props(new ConnectionActor(devices)), name)
+      system.actorOf(Props(new TcpConnectionActor(devices)).withMailbox("priority-dispatcher"), name)
     }
 
     "Scenario 58618" in {

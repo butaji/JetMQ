@@ -1,11 +1,11 @@
 package net.jetmq.packets
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{Props, ActorSystem}
 import akka.io.Tcp
 import akka.testkit.{ImplicitSender, TestKit}
 import net.jetmq.Helpers._
 import net.jetmq.SessionsManagerActor
-import net.jetmq.broker.{Bag, ConnectionActor, EventBusActor}
+import net.jetmq.broker.{TcpConnectionActor, Bag, MqttConnectionActor, EventBusActor}
 import org.specs2.mutable._
 import org.specs2.specification.Scope
 
@@ -18,7 +18,7 @@ class KeepaliveSpec extends TestKit(ActorSystem()) with ImplicitSender with Spec
     val devices = system.actorOf(Props(new SessionsManagerActor(bus)), "devices")
 
     def create_actor(name: String) = {
-      system.actorOf(Props(new ConnectionActor(devices)), name)
+      system.actorOf(Props(new TcpConnectionActor(devices)).withMailbox("priority-dispatcher"), name)
     }
 
 
