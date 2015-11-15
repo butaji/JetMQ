@@ -19,4 +19,4 @@ WORKDIR JetMQ
 EXPOSE 1883
 
 RUN sbt compile
-CMD sbt "run-main net.jetmq.broker.Main"
+CMD git fetch && sbt "run-main net.jetmq.broker.Main"

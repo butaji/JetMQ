@@ -9,4 +9,4 @@ WORKDIR JetMQ/www
 
 RUN npm install
 
-CMD node index.js
+CMD git fetch && node index.js
