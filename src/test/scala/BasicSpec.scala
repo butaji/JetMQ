@@ -21,110 +21,104 @@ class BasicSpec extends TestKit(ActorSystem()) with ImplicitSender with Specific
       system.actorOf(Props(new ConnectionActor(devices)), name)
     }
 
-    "Scenario #50856" in {
-      val h = create_actor("50856")
+    "Scenario 51208" in {
+      val h = create_actor("51208")
 
-      h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //CONNECT
-      expectMsg("20020000".toTcpWrite) //CONNACK
+      h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //Connect(Header(false,0,false),ConnectFlags(false,false,false,0,false,true,0),myclientid,None,None,None,None)
+      expectMsg("20020000".toTcpWrite) //Connack(Header(false,0,false),0)
 
-      h ! "e000".toTcpReceived //DISCONNECT
+      h ! "e000".toTcpReceived //Disconnect(Header(false,0,false))
       expectMsg(Tcp.Close)
       expectNoMsg(Bag.wait_time)
       success
     }
 
-    "Scenario #50857" in {
-      val h = create_actor("50857")
+    "Scenario 51209" in {
+      val h = create_actor("51209")
 
-      h ! "101700044d51545404020000000b6d79636c69656e74696432".toTcpReceived //CONNECT
-      expectMsg("20020000".toTcpWrite) //CONNACK
+      h ! "101700044d51545404020000000b6d79636c69656e74696432".toTcpReceived //Connect(Header(false,0,false),ConnectFlags(false,false,false,0,false,true,0),myclientid2,None,None,None,None)
+      expectMsg("20020000".toTcpWrite) //Connack(Header(false,0,false),0)
 
-      h ! "e000".toTcpReceived //DISCONNECT
+      h ! "e000".toTcpReceived //Disconnect(Header(false,0,false))
       expectMsg(Tcp.Close)
       expectNoMsg(Bag.wait_time)
       success
     }
 
-    "Scenario #50858" in {
-      val h = create_actor("50858")
+    "Scenario 51210" in {
+      val h = create_actor("51210")
 
-      h ! "101a00044d51545404020000000e636c65616e2072657461696e6564".toTcpReceived //CONNECT
-      expectMsg("20020000".toTcpWrite) //CONNACK
+      h ! "101a00044d51545404020000000e636c65616e2072657461696e6564".toTcpReceived //Connect(Header(false,0,false),ConnectFlags(false,false,false,0,false,true,0),clean retained,None,None,None,None)
+      expectMsg("20020000".toTcpWrite) //Connack(Header(false,0,false),0)
 
-      h ! "8206000200012300".toTcpReceived //SUBSCRIBE
-      expectMsg("9003000200".toTcpWrite) //SUBACK
+      h ! "8206000200012300".toTcpReceived //Subscribe(Header(false,1,false),2,Vector((#,0)))
+      expectMsg("9003000200".toTcpWrite) //Suback(Header(false,0,false),2,Vector(0))
 
-      h ! "e000".toTcpReceived //DISCONNECT
+      h ! "e000".toTcpReceived //Disconnect(Header(false,0,false))
       expectMsg(Tcp.Close)
       expectNoMsg(Bag.wait_time)
       success
     }
 
-    "Scenario #50859" in {
-      val h = create_actor("50859")
+    "Scenario 51211" in {
+      val h = create_actor("51211")
 
-      h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //CONNECT
-      expectMsg("20020000".toTcpWrite) //CONNACK
+      h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //Connect(Header(false,0,false),ConnectFlags(false,false,false,0,false,true,0),myclientid,None,None,None,None)
+      expectMsg("20020000".toTcpWrite) //Connack(Header(false,0,false),0)
 
-      h ! "e000".toTcpReceived //DISCONNECT
+      h ! "e000".toTcpReceived //Disconnect(Header(false,0,false))
       expectMsg(Tcp.Close)
       expectNoMsg(Bag.wait_time)
       success
     }
 
-    "Scenario #50860" in {
-      val h = create_actor("50860")
+    "Scenario 51212" in {
+      val h = create_actor("51212")
 
-      h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //CONNECT
-      expectMsg("20020000".toTcpWrite) //CONNACK
+      h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //Connect(Header(false,0,false),ConnectFlags(false,false,false,0,false,true,0),myclientid,None,None,None,None)
+      expectMsg("20020000".toTcpWrite) //Connack(Header(false,0,false),0)
 
-      h ! "820b00020006546f7069634102".toTcpReceived //SUBSCRIBE
-      expectMsg("9003000202".toTcpWrite) //SUBACK
+      h ! "820b00020006546f7069634102".toTcpReceived //Subscribe(Header(false,1,false),2,Vector((TopicA,2)))
+      expectMsg("9003000202".toTcpWrite) //Suback(Header(false,0,false),2,Vector(2))
 
-      h ! "300d0006546f70696341716f732030".toTcpReceived //PUBLISH
-      expectMsg("300d0006546f70696341716f732030".toTcpWrite) //PUBLISH
+      h ! "300d0006546f70696341716f732030320f0006546f706963410003716f732031340f0006546f706963410004716f732032".toTcpReceived //Publish(Header(false,0,false),TopicA,0,ByteVector(5 bytes, 0x716f732030))
+      expectMsg("300d0006546f70696341716f732030".toTcpWrite) //Publish(Header(false,0,false),TopicA,0,ByteVector(5 bytes, 0x716f732030))
+      expectMsg("40020003".toTcpWrite) //Puback(Header(false,0,false),3)
+      expectMsg("320f0006546f706963410001716f73203150020004".toTcpWrite) //Publish(Header(false,1,false),TopicA,1,ByteVector(5 bytes, 0x716f732031))
 
-      h ! "320f0006546f706963410003716f732031".toTcpReceived //PUBLISH
-      expectMsg("40020003".toTcpWrite) //PUBACK
+      h ! "40020001".toTcpReceived //Puback(Header(false,0,false),1)
 
-      h ! "340f0006546f706963410004716f732032".toTcpReceived //PUBLISH
+      h ! "62020004".toTcpReceived //Pubrel(Header(false,1,false),4)
+      expectMsg("70020004".toTcpWrite) //Pubcomp(Header(false,0,false),4)
+      expectMsg("340f0006546f706963410002716f732032".toTcpWrite) //Publish(Header(false,2,false),TopicA,2,ByteVector(5 bytes, 0x716f732032))
 
-      expectMsg("320f0006546f706963410001716f732031".toTcpWrite) //PUBLISH
+      h ! "50020002".toTcpReceived //Pubrec(Header(false,0,false),2)
+      expectMsg("62020002".toTcpWrite) //Pubrel(Header(false,1,false),2)
 
-      h ! "40020001".toTcpReceived //PUBACK
-      expectMsg("50020004".toTcpWrite) //PUBREC
+      h ! "70020002".toTcpReceived //Pubcomp(Header(false,0,false),2)
 
-      h ! "62020004".toTcpReceived //PUBREL
-      expectMsg("340f0006546f706963410002716f732032".toTcpWrite) //PUBLISH
-
-      expectMsg("70020004".toTcpWrite) //PUBCOMP
-
-      h ! "50020002".toTcpReceived //PUBREC
-      expectMsg("62020002".toTcpWrite) //PUBREL
-
-      h ! "70020002".toTcpReceived //PUBCOMP
-      h ! "e000".toTcpReceived //DISCONNECT
+      h ! "e000".toTcpReceived //Disconnect(Header(false,0,false))
       expectMsg(Tcp.Close)
       expectNoMsg(Bag.wait_time)
       success
     }
 
-    "Scenario #50861" in {
-      val h = create_actor("50861")
+    "Scenario 51213" in {
+      val h = create_actor("51213")
 
-      h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //CONNECT
-      expectMsg("20020000".toTcpWrite) //CONNACK
+      h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //Connect(Header(false,0,false),ConnectFlags(false,false,false,0,false,true,0),myclientid,None,None,None,None)
+      expectMsg("20020000".toTcpWrite) //Connack(Header(false,0,false),0)
 
-      h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //CONNECT
+      h ! "101600044d51545404020000000a6d79636c69656e746964".toTcpReceived //Connect(Header(false,0,false),ConnectFlags(false,false,false,0,false,true,0),myclientid,None,None,None,None)
       expectMsg(Tcp.Close)
       expectNoMsg(Bag.wait_time)
       success
     }
 
-    "Scenario #50862" in {
-      val h = create_actor("50862")
+    "Scenario 51214" in {
+      val h = create_actor("51214")
 
-      h ! "10140002686a04020000000a6d79636c69656e746964".toTcpReceived //CONNECT
+      h ! "10140002686a04020000000a6d79636c69656e746964".toTcpReceived //Broken package
       expectMsg(Tcp.Close)
       expectNoMsg(Bag.wait_time)
       success

@@ -6,7 +6,7 @@ import net.jetmq.Helpers._
 
 object Generator {
 
-  // commented to not disturb sbt run
+//   commented to not disturb sbt run
 
 //  def main(args: Array[String]) {
 //    run(args(0))
@@ -25,7 +25,12 @@ object Generator {
   }
 
   def decode(p: String): String = {
-    PacketsHelper.decode(BitVector(p.toBin)).require.value.toString()
+    try {
+      PacketsHelper.decode(BitVector(p.toBin)).require.value.toString()
+    } catch {
+      case _ => return "Broken package"
+    }
+
   }
 
   def generateScenario(f: (Int, List[Array[String]])) = {
