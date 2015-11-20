@@ -1,5 +1,6 @@
 package net.jetmq.broker
 
+import scala.language.postfixOps
 import akka.actor.{ActorRef, FSM}
 import akka.pattern.ask
 import akka.util.Timeout
@@ -74,8 +75,10 @@ class MqttConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Conne
 
   when(Waiting) {
     case Event(ReceivedPacket(c: Connect), _) => {
-      val sessionF: Future[ActorRef] = ask(sessions, c)(Timeout(1 second)).mapTo[ActorRef]
-      val session = Await.result(sessionF, 1 second)
+      implicit val timeout = Timeout(1 seconds)
+
+      val sessionF: Future[ActorRef] = ask(sessions, c).mapTo[ActorRef]
+      val session = Await.result(sessionF, timeout.duration)
 
       log.info("-> " + c)
       session ! c

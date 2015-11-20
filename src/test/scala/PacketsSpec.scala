@@ -29,7 +29,7 @@ class PacketsSpec extends Specification {
   }
 
   "PUBLISH with empty body" >> {
-    val p = Publish(Header(false, 0, false), "TopicA/B", 0, hex"")
+    val p = Publish(Header(false, 0, false), "TopicA/B", 0, "")
 
     Codec[Packet].decode(hex"300a0008546f706963412f42".bits).require.value mustEqual (p)
 

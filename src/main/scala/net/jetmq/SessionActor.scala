@@ -1,8 +1,8 @@
 package net.jetmq.broker
 
 import akka.actor.{ActorRef, FSM}
-import net.jetmq.Helpers._
 import net.jetmq.packets._
+
 import scala.concurrent.duration._
 
 case class ResetSession()
@@ -79,7 +79,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
         val will = if (c.connect_flags.will_flag == true)
                     Some(
                       Publish(
-                        Header(false, c.connect_flags.will_qos, c.connect_flags.will_retain), c.topic.get,0, c.message.get.toByteVector))
+                        Header(false, c.connect_flags.will_qos, c.connect_flags.will_retain), c.topic.get,0, c.message.get))
                     else None
 
         goto(SessionConnected) using SessionConnectedBag(sender, c.connect_flags.clean_session, bag.message_id,System.currentTimeMillis, List() ,will)

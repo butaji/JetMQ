@@ -33,7 +33,7 @@ case class Connect(header: Header,
                    user: Option[String] = None,
                    password: Option[String] = None) extends Packet
 
-case class Publish(header: Header, topic: String, message_identifier: Int, payload: ByteVector) extends Packet
+case class Publish(header: Header, topic: String, message_identifier: Int, payload: String) extends Packet
 
 case class Puback(header: Header, message_identifier: Int) extends Packet
 
@@ -114,7 +114,7 @@ object Publish {
   val dupLens = lens[Publish].header.dup
   implicit val discriminator: Discriminator[Packet, Publish, Int] = Discriminator(3)
   implicit val codec: Codec[Publish] = (Header.codec >>:~ {
-    (hdr: Header) ⇒ variableSizeBytes(Codecs.remaining, Codecs.string :: (if (hdr.qos != 0) Codecs.message_id else provide(0)) :: bytes)
+    (hdr: Header) ⇒ variableSizeBytes(Codecs.remaining, Codecs.string :: (if (hdr.qos != 0) Codecs.message_id else provide(0)) :: utf8)
   }).as[Publish]
 }
 
