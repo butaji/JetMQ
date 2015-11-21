@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-  <appender name="stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
-    <destination>10.211.55.80:5000</destination>
+  <appender name="stash" class="ch.qos.logback.core.ConsoleAppender">
 
     <!-- encoder is required -->
     <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
