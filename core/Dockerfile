@@ -23,8 +23,12 @@ RUN \
 
 
 RUN mkdir /app
-ADD . /app
 WORKDIR /app
+RUN sbt reload plugins
+ADD ./build.sbt /app/build.sbt
+RUN sbt compile 
+#cache everything before if wasnt changed
+ADD . /app
 
 EXPOSE 1883
 
