@@ -7,6 +7,7 @@ Vagrant.configure(2) do |config|
 
   config.vm.network "forwarded_port", guest: 80, host: 80
   config.vm.network "forwarded_port", guest: 1883, host: 1883
+  config.vm.network "forwarded_port", guest: 5601, host: 5601
 
   config.vm.provision :shell, :inline => "
    if [ ! -f /opt/bin/docker-compose ]; then \
@@ -16,6 +17,6 @@ Vagrant.configure(2) do |config|
      sudo chmod +x /opt/bin/docker-compose
    fi
   "
-  config.vm.provision :shell, :inline => "cd JetMQ/ && docker-compose up -d"
+  config.vm.provision :shell, :inline => "cd JetMQ/ && docker-compose up -d", :run => "always"
 
 end

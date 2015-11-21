@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-  <appender name="stash" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <remoteHost>logstash</remoteHost>
+        <port>5000</port>
+        <!-- encoder is required -->
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+    </appender>
 
-    <!-- encoder is required -->
-    <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
-  </appender>
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
 
-  <root level="DEBUG">
-    <appender-ref ref="stash" />
-  </root>
+        <!-- encoder is required -->
+        <encoder>
+            <pattern>%X{akkaTimestamp} %-5level %logger{36} %X{sourceThread} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="DEBUG">
+        <appender-ref ref="console" />
+        <appender-ref ref="stash"/>
+    </root>
 </configuration>

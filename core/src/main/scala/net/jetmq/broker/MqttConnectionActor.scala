@@ -25,6 +25,7 @@ class MqttConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Conne
 
   when(Active) {
     case Event(p: Packet, bag: ConnectionSessionBag) => {
+
       log.info("<- " + p)
 
       bag.connection ! SendingPacket(p)
