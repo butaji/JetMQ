@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <appender name="stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+    <destination>10.211.55.80:5000</destination>
+
+    <!-- encoder is required -->
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
+  </appender>
+
+  <root level="DEBUG">
+    <appender-ref ref="stash" />
+  </root>
+</configuration>
