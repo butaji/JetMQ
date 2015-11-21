@@ -7,5 +7,5 @@ core:
 web:
   build: web/
   ports:
-    - "80:3000"
+    - "3000:3000"
   restart: always
