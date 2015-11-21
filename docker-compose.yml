@@ -1,10 +1,10 @@
-jetmq:
+core:
   build: core/
   ports:
     - "1883:1883"
   restart: always
 
-jetmqweb:
+web:
   build: web/
   ports:
     - "80:3000"
