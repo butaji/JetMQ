@@ -1,11 +1,10 @@
-package net.jetmq.packets
+package net.jetmq.broker
 
 import net.sigusr.mqtt.impl.frames.RemainingLengthCodec
 import scodec.Codec
-import scodec.bits.ByteVector
+import scodec.bits._
 import scodec.codecs._
 import shapeless._
-import scodec.bits._
 
 sealed trait Packet {
   def header: Header

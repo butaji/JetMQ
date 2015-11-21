@@ -12,5 +12,5 @@ object Main extends App {
 
   val server = system.actorOf(Props[ServerActor], "server")
 
-  log.info("started...") 
+  log.info("started...")
 }

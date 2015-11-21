@@ -3,9 +3,9 @@ package integration
 import akka.actor.{ActorSystem, Props}
 import akka.io.Tcp
 import akka.testkit.{ImplicitSender, TestKit}
-import net.jetmq.Helpers._
-import net.jetmq.SessionsManagerActor
-import net.jetmq.broker.{Bag, EventBusActor, TcpConnectionActor}
+import net.jetmq.broker._
+import Helpers._
+import net.jetmq.tests.Bag
 import org.specs2.mutable._
 import org.specs2.specification.Scope
 

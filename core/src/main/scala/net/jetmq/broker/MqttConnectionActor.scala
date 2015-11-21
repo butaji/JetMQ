@@ -1,19 +1,17 @@
 package net.jetmq.broker
 
-import scala.language.postfixOps
 import akka.actor.{ActorRef, FSM}
 import akka.pattern.ask
 import akka.util.Timeout
-import net.jetmq.packets.{Connect, Disconnect, Header, Packet}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import scala.language.postfixOps
 
 sealed trait ConnectionState
 
-case object Waiting extends ConnectionState
-
 case object Active extends ConnectionState
+case object Waiting extends ConnectionState
 
 sealed trait ConnectionBag
 
@@ -36,7 +34,7 @@ class MqttConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Conne
     case Event(ReceivedPacket(c: Connect), bag: ConnectionSessionBag) => {
       log.info("Unexpected Connect. Closing peer")
 
-      bag.session ! Disconnect(Header(false, 0, false))
+      bag.session ! Disconnect(Header(dup = false, qos = 0, retain = false))
 
       bag.connection ! Closing
       stay
@@ -45,7 +43,7 @@ class MqttConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Conne
     case Event(ReceivedPacket(c: Disconnect), bag: ConnectionSessionBag) => {
       log.info("Disconnect. Closing peer")
 
-      bag.session ! Disconnect(Header(false, 0, false))
+      bag.session ! Disconnect(Header(dup = false, qos = 0, retain = false))
 
       bag.connection ! Closing
       stay

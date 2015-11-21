@@ -2,9 +2,10 @@ package net.jetmq.broker
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 
-case class BusSubscribe(topic: String, actor: ActorRef, qos: Int = 0)
 
+case class BusSubscribe(topic: String, actor: ActorRef, qos: Int = 0)
 case class BusUnsubscribe(topic: String, actor: ActorRef)
+
 
 case class BusPublish(topic: String, payload: Any, retain: Boolean = false, clean_retain: Boolean = false)
 
@@ -39,7 +40,7 @@ class EventBusActor extends Actor with ActorLogging {
         .sortBy(t => t._1)
         .foreach(t => {
 
-          p.actor ! PublishPayload(t._2, true, p.qos)
+          p.actor ! PublishPayload(t._2, auto = true, qos = p.qos)
         })
     }
     case p: BusUnsubscribe => {
@@ -62,8 +63,8 @@ class EventBusActor extends Actor with ActorLogging {
         .map(t => (t._1, t._2.toArray))
         .foreach(t => {
           log.info("publish " + p + " by subscriptions: " + t._2.map(x => x._1 + "@" + x._3).mkString(", "))
-          val max_qos = t._2.map(x => x._3).reduceLeft(_ max _)
-          t._1 ! PublishPayload(p.payload, false, max_qos)
+          val max_qos = t._2.map(x => x._3).max
+          t._1 ! PublishPayload(p.payload, auto = false, qos = max_qos)
         })
 
       if (p.retain == true) {
@@ -111,7 +112,7 @@ object MqttTopicClassificator {
       return isPlainSubclass(actual, subscribing)
 
     if (subscribing == "#")
-      return true;
+      return true
 
     val square_index = subscribing.indexOf('#')
 

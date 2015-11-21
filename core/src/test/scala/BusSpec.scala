@@ -1,7 +1,8 @@
-package net.jetmq.broker
+package net.jetmq.tests
 
 import akka.actor.{Props, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit}
+import net.jetmq.broker._
 import org.specs2.mutable._
 import org.specs2.specification.Scope
 

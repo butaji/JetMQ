@@ -5,7 +5,6 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.io.Tcp._
 import akka.io.{IO, Tcp}
-import net.jetmq.SessionsManagerActor
 
 class ServerActor extends Actor with ActorLogging {
 

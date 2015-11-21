@@ -1,5 +1,6 @@
-package net.jetmq.packets
+package net.jetmq.tests
 
+import net.jetmq.broker._
 import org.specs2.mutable._
 import scodec.Codec
 import scodec.bits._

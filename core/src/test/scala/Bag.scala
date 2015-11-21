@@ -1,5 +1,6 @@
-package net.jetmq.broker
+package net.jetmq.tests
 
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
 
 object Bag {

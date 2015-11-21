@@ -1,7 +1,6 @@
 package net.jetmq.broker
 
 import akka.actor.{ActorRef, FSM}
-import net.jetmq.packets._
 
 import scala.concurrent.duration._
 
@@ -14,8 +13,8 @@ case object WaitingForNewSession extends SessionState
 case object SessionConnected extends SessionState
 
 sealed trait SessionBag {
-  val message_id: Int;
-  val clean_session: Boolean;
+  val message_id: Int
+  val clean_session: Boolean
   val sending: List[Either[Publish, Pubrel]]
 }
 
@@ -34,14 +33,14 @@ case object TrySending
 
 class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
 
-  startWith(WaitingForNewSession, SessionWaitingBag(List(), List(), 1, true))
+  startWith(WaitingForNewSession, SessionWaitingBag(List(), List(), 1, clean_session = true))
 
   when(WaitingForNewSession) {
     case Event(c: Connect, bag: SessionWaitingBag) => {
       val status = if (c.client_id.length == 0 && c.connect_flags.clean_session == false) 2 else 0
       val result = if (c.connect_flags.clean_session == false && status == 0 && bag.clean_session == false) status + 256 else status
 
-      sender ! Connack(Header(false, 0, false), result)
+      sender ! Connack(Header(dup = false, 0, retain = false), result)
 
       if (status == 0) {
 
@@ -53,21 +52,17 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
           })
 
           log.info("current sending is " + bag.sending)
-          bag.sending.foreach(x => {
-
-            x match {
-              case Left(p) => {
-                val pp = p.copy(header = p.header.copy(dup = true))
-                log.info("publishing sending " + pp)
-                sender ! pp
-              }
-              case Right(p) => {
-                log.info("publishing sending " + p)
-                sender ! p
-              }
+          bag.sending.foreach {
+            case Left(p) => {
+              val pp = p.copy(header = p.header.copy(dup = true))
+              log.info("publishing sending " + pp)
+              sender ! pp
             }
-
-          })
+            case Right(p) => {
+              log.info("publishing sending " + p)
+              sender ! p
+            }
+          }
         }
 
         if (c.connect_flags.keep_alive > 0) {
@@ -79,7 +74,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
         val will = if (c.connect_flags.will_flag == true)
                     Some(
                       Publish(
-                        Header(false, c.connect_flags.will_qos, c.connect_flags.will_retain), c.topic.get,0, c.message.get))
+                        Header(dup = false, c.connect_flags.will_qos, retain = c.connect_flags.will_retain), c.topic.get,0, c.message.get))
                     else None
 
         goto(SessionConnected) using SessionConnectedBag(sender, c.connect_flags.clean_session, bag.message_id,System.currentTimeMillis, List() ,will)
@@ -137,18 +132,18 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
     case Event(p: Subscribe, b:SessionConnectedBag) => {
       p.topics.foreach(t => bus ! BusSubscribe(t._1, self, t._2))
 
-      sender ! Suback(Header(false, 0, false), p.message_identifier, p.topics.map(x => x._2))
+      sender ! Suback(Header(dup = false, 0, retain = false), p.message_identifier, p.topics.map(x => x._2))
       stay using b.copy(last_packet = System.currentTimeMillis())
     }
 
     case Event(p: Publish, b:SessionConnectedBag) => {
 
       if (p.header.qos == 1) {
-        sender ! Puback(Header(false, 0, false), p.message_identifier)
+        sender ! Puback(Header(dup = false, 0, retain = false), p.message_identifier)
       }
 
       if (p.header.qos == 2) {
-        sender ! Pubrec(Header(false, 0, false), p.message_identifier)
+        sender ! Pubrec(Header(dup = false, 0, retain = false), p.message_identifier)
       }
 
       if (p.payload.length == 0 && p.header.retain == false) {
@@ -161,7 +156,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
     }
 
     case Event(p: Pubrec, b:SessionConnectedBag) => {
-      val pubrel = Pubrel(Header(false, 1, false), p.message_identifier)
+      val pubrel = Pubrel(Header(dup = false, 1, retain = false), p.message_identifier)
 
       b.connection ! pubrel
 
@@ -174,7 +169,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
     }
 
     case Event(p: Pubrel, b:SessionConnectedBag) => {
-      sender ! Pubcomp(Header(false, 0, false), p.message_identifier)
+      sender ! Pubcomp(Header(dup = false, 0, retain = false), p.message_identifier)
 
       stay using b.copy(last_packet = System.currentTimeMillis())
     }
@@ -205,13 +200,13 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
 
       p.topics.foreach(t => bus ! BusUnsubscribe(t, self))
 
-      sender ! Unsuback(Header(false, 0, false), p.message_identifier)
+      sender ! Unsuback(Header(dup = false, 0, retain = false), p.message_identifier)
 
       stay using b.copy(last_packet = System.currentTimeMillis())
     }
 
     case Event(p: Pingreq, b:SessionConnectedBag) => {
-      sender ! Pingresp(Header(false, 0, false))
+      sender ! Pingresp(Header(dup = false, 0, retain = false))
 
       stay using b.copy(last_packet = System.currentTimeMillis())
     }
@@ -235,7 +230,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
     case Event(ConnectionLost, b: SessionConnectedBag) => {
       log.info("idle")
 
-      if (b.will != None) {
+      if (b.will.isDefined) {
         val p = b.will.get.copy(message_identifier = b.message_id)
 
         log.info("publishing will " + p)
@@ -256,7 +251,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
       if (b.clean_session == true)
         bus ! BusDeattach(self)
 
-      goto(WaitingForNewSession) using (SessionWaitingBag(b.sending, List(), 1, b.clean_session))
+      goto(WaitingForNewSession) using SessionWaitingBag(b.sending, List(), 1, b.clean_session)
     }
 
 
@@ -268,14 +263,14 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
         bus ! BusDeattach(self)
       }
 
-      goto(WaitingForNewSession) using (SessionWaitingBag(b.sending, List(), 1, b.clean_session))
+      goto(WaitingForNewSession) using SessionWaitingBag(b.sending, List(), 1, b.clean_session)
     }
 
 
     case Event(x, b) => {
       log.error("unexpected message " + x + " for " + stateName)
 
-      goto(WaitingForNewSession) using (SessionWaitingBag(b.sending, List(), 1, b.clean_session))
+      goto(WaitingForNewSession) using SessionWaitingBag(b.sending, List(), 1, b.clean_session)
     }
   }
 

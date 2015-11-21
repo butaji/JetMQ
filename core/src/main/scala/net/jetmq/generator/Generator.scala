@@ -1,8 +1,8 @@
 package net.jetmq.generator
 
-import net.jetmq.broker.PacketsHelper
+import net.jetmq.broker.{Helpers, PacketsHelper}
 import scodec.bits.BitVector
-import net.jetmq.Helpers._
+import Helpers._
 
 object Generator {
 

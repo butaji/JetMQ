@@ -1,11 +1,8 @@
-package net.jetmq
+package net.jetmq.broker
 
 import java.net.URLEncoder
 import java.util.UUID
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import net.jetmq.broker.{SessionActor, ResetSession}
-import net.jetmq.packets._
 
 class SessionsManagerActor(bus: ActorRef) extends Actor with ActorLogging {
 

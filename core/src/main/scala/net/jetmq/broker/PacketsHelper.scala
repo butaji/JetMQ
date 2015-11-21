@@ -1,10 +1,12 @@
 package net.jetmq.broker
 
-import net.jetmq.packets.Packet
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits.BitVector
 import scodec.{Attempt, Codec, DecodeResult}
 
+/**
+  * Created by vitalybaum on 21/11/15.
+  */
 object PacketsHelper {
 
   def decode(b: BitVector): List[Either[Packet, Failure]] = {

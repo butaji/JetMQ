@@ -2,13 +2,10 @@ package net.jetmq.broker
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.io.Tcp
-import net.jetmq.Helpers._
-import net.jetmq.packets.Packet
+import Helpers._
 
 case class ReceivedPacket(packet: Packet)
-
 case class SendingPacket(packet: Packet)
-
 case object Closing
 
 class TcpConnectionActor(sessions: ActorRef) extends Actor with ActorLogging {
@@ -20,13 +17,13 @@ class TcpConnectionActor(sessions: ActorRef) extends Actor with ActorLogging {
 
       val packets = PacketsHelper.decode(data.toBitVector)
 
-      packets.foreach(x => x match {
+      packets.foreach {
         case Left(p: Packet) => mqtt ! ReceivedPacket(p)
         case Right(p) => {
           log.warning("" + p)
           sender ! Tcp.Close
         }
-      })
+      }
 
       context become receive(sender)
     }
@@ -40,12 +37,12 @@ class TcpConnectionActor(sessions: ActorRef) extends Actor with ActorLogging {
 
       val packets = PacketsHelper.decode(data.toBitVector)
 
-      packets.foreach(x => x match {
+      packets.foreach {
         case Left(p: Packet) => mqtt ! ReceivedPacket(p)
         case Right(p) => {
           sender ! Tcp.Close
         }
-      })
+      }
     }
 
     case SendingPacket(p) => {
