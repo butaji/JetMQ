@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <appender name="stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
-        <remoteHost>logstash</remoteHost>
+        <remoteHost>elk</remoteHost>
         <port>5000</port>
         <!-- encoder is required -->
         <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>

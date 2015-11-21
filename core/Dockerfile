@@ -1,5 +1,21 @@
-FROM java:8
+FROM ubuntu:15.04
 MAINTAINER Vitaly Baum <vitaly.baum@gmail.com> 
+
+# Oracle Java 8
+
+RUN apt-get install software-properties-common -y
+
+RUN apt-get install sudo curl -y
+
+RUN sudo add-apt-repository ppa:webupd8team/java -y
+
+RUN sudo apt-get update -y
+
+RUN echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections
+
+RUN sudo apt-get install oracle-java8-installer -y
+
+# Scala
 
 ENV SCALA_VERSION 2.11.7
 ENV SBT_VERSION 0.13.9
@@ -23,14 +39,20 @@ RUN \
 
 
 RUN mkdir /app
+
 WORKDIR /app
+
 RUN sbt reload plugins
+
 ADD ./build.sbt /app/build.sbt
-RUN sbt compile 
+
+RUN sbt compile
 #cache everything before if wasnt changed
 ADD . /app
 
 EXPOSE 1883
 
 RUN sbt compile
+
 CMD sbt "run-main net.jetmq.broker.Main"
+

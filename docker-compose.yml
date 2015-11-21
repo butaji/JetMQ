@@ -5,8 +5,6 @@ core:
   ports:
     - "1883:1883"
   restart: always
-  links:
-    - logstash
 
 web:
   build: web/
@@ -15,3 +13,13 @@ web:
     - "3000:3000"
   restart: always
   mem_limit: 50000000
+
+elk:
+  build: elk/
+  hostname: elk
+  ports:
+    - "5601:5601"
+    - "5000:5000"
+    - "9200:9200"
+  restart: always
+

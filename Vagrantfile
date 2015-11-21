@@ -17,6 +17,6 @@ Vagrant.configure(2) do |config|
      sudo chmod +x /opt/bin/docker-compose
    fi
   "
-  config.vm.provision :shell, :inline => "cd JetMQ/ && docker-compose up -d", :run => "always"
+  config.vm.provision :shell, :inline => "cd JetMQ/ && docker-compose stop && docker-compose build", :run => "always"
 
 end
