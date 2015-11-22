@@ -21,5 +21,4 @@ elk:
     - "5601:5601"
     - "5000:5000"
     - "9200:9200"
-  restart: always
-
+  restart: always 

@@ -19,85 +19,88 @@ RUN sudo apt-get install oracle-java8-installer -y
 
 # Elastic
 
-RUN sudo wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+RUN gpg --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4
+RUN arch="$(dpkg --print-architecture)" \
+	&& set -x \
+	&& curl -o /usr/local/bin/gosu -fSL "https://github.com/tianon/gosu/releases/download/1.3/gosu-$arch" \
+	&& curl -o /usr/local/bin/gosu.asc -fSL "https://github.com/tianon/gosu/releases/download/1.3/gosu-$arch.asc" \
+	&& gpg --verify /usr/local/bin/gosu.asc \
+	&& rm /usr/local/bin/gosu.asc \
+	&& chmod +x /usr/local/bin/gosu
 
-RUN echo "deb http://packages.elastic.co/elasticsearch/2.x/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch-2.x.list
+RUN apt-key adv --keyserver ha.pool.sks-keyservers.net --recv-keys 46095ACC8548582C1A2699A9D27D666CD88E42B4
 
-RUN sudo apt-get update
+ENV ELASTICSEARCH_MAJOR 2.0
+ENV ELASTICSEARCH_VERSION 2.0.0
+ENV ELASTICSEARCH_REPO_BASE http://packages.elasticsearch.org/elasticsearch/2.x/debian
 
-RUN sudo apt-get -y install elasticsearch
+RUN echo "deb $ELASTICSEARCH_REPO_BASE stable main" > /etc/apt/sources.list.d/elasticsearch.list
 
-RUN sudo echo "network.host: localhost" > /etc/elasticsearch/elasticsearch.yml
+RUN set -x \
+	&& apt-get update \
+	&& apt-get install -y --no-install-recommends elasticsearch=$ELASTICSEARCH_VERSION \
+	&& rm -rf /var/lib/apt/lists/*
 
-RUN sudo service elasticsearch restart
+ENV PATH /usr/share/elasticsearch/bin:$PATH
 
-RUN sudo update-rc.d elasticsearch defaults 95 10
+RUN set -ex \
+	&& for path in \
+		/usr/share/elasticsearch/data \
+		/usr/share/elasticsearch/logs \
+		/usr/share/elasticsearch/config \
+		/usr/share/elasticsearch/config/scripts \
+	; do \
+		mkdir -p "$path"; \
+		chown -R elasticsearch:elasticsearch "$path"; \
+	done
 
-RUN sudo service elasticsearch stop
+COPY elastic/config /usr/share/elasticsearch/config
+
+VOLUME /usr/share/elasticsearch/data
+
+RUN chown -R elasticsearch:elasticsearch /usr/share/elasticsearch/data
+
+EXPOSE 9200 9300
+
+# Logstash
+
+ENV LOGSTASH_MAJOR 2.0
+ENV LOGSTASH_VERSION 1:2.0.0-1
+
+RUN echo "deb http://packages.elasticsearch.org/logstash/${LOGSTASH_MAJOR}/debian stable main" > /etc/apt/sources.list.d/logstash.list
+
+RUN set -x \
+  && apt-get update \
+    && apt-get install -y --no-install-recommends logstash=$LOGSTASH_VERSION \
+      && rm -rf /var/lib/apt/lists/*
+
+ENV PATH /opt/logstash/bin:$PATH
+
+ADD logstash/logstash-syslog.conf logstash-syslog.conf
+
+EXPOSE 5000
 
 # Kibana
 
-RUN sudo groupadd -g 999 kibana
+RUN groupadd -r kibana && useradd -r -m -g kibana kibana
 
-RUN sudo useradd -u 999 -g 999 kibana
+ENV KIBANA_VERSION 4.2.1
+ENV KIBANA_SHA1 1c8d19d39a9ba10dc2431068e08497fbb416eba4
 
-WORKDIR ~
+RUN set -x \
+	&& curl -fSL "https://download.elastic.co/kibana/kibana/kibana-${KIBANA_VERSION}-linux-x64.tar.gz" -o kibana.tar.gz \
+	&& echo "${KIBANA_SHA1}  kibana.tar.gz" | sha1sum -c - \
+	&& mkdir -p /opt/kibana \
+	&& tar -xz --strip-components=1 -C /opt/kibana -f kibana.tar.gz \
+	&& chown -R kibana:kibana /opt/kibana \
+	&& rm kibana.tar.gz
 
-RUN wget https://download.elastic.co/kibana/kibana/kibana-4.2.0-linux-x64.tar.gz
+ENV PATH /opt/kibana/bin:$PATH
 
-RUN tar xvf kibana-4.2.0-linux-x64.tar.gz
+EXPOSE 5601
 
-RUN sudo echo "server.host: \"localhost\"" | tee kibana-4.2.0-linux-x64/config/kibana.yml
+# Ending
 
-RUN sudo mkdir -p /opt/kibana
-
-RUN sudo cp -R kibana-4.2.0-linux-x64/* /opt/kibana/
-
-RUN sudo chown -R kibana: /opt/kibana
-
-RUN cd /etc/init.d && sudo curl -o kibana https://gist.githubusercontent.com/thisismitch/8b15ac909aed214ad04a/raw/fc5025c3fc499ad8262aff34ba7fde8c87ead7c0/kibana-4.x-init
-
-RUN cd /etc/default && sudo curl -o kibana https://gist.githubusercontent.com/thisismitch/8b15ac909aed214ad04a/raw/fc5025c3fc499ad8262aff34ba7fde8c87ead7c0/kibana-4.x-default
-
-RUN sudo chmod +x /etc/init.d/kibana
-
-RUN sudo service kibana restart
-
-RUN sudo update-rc.d kibana defaults 96 9
-
-RUN sudo service kibana stop
-
-# Nginx
-RUN sudo apt-get install nginx apache2-utils -y
-
-RUN sudo htpasswd -c /etc/nginx/htpasswd.users kibanaadmin
-
-ADD nginx /etc/nginx/sites-available/default
-
-RUN sudo service nginx restart
-
-RUN sudo service nginx stop
-
-# Logstash 
-
-RUN echo 'deb http://packages.elasticsearch.org/logstash/2.0/debian stable main' | sudo tee /etc/apt/sources.list.d/logstash.list
-
-RUN sudo apt-get update -y
-
-RUN sudo apt-get install logstash -y
-
-ADD 01-lumberjack-input.conf /etc/logstash/conf.d/01-lumberjack-input.conf
-
-ADD 10-syslog.conf /etc/logstash/conf.d/10-syslog.conf
-
-ADD 30-lumberjack-output.conf /etc/logstash/conf.d/30-lumberjack-output.conf
-
-RUN sudo service logstash restart
-
-RUN sudo update-rc.d logstash defaults 96 9
-
-RUN sudo service logstash stop
-
-CMD sudo service elasticsearch restart
-#CMD sudo service nginx restart && sudo service elasticsearch restart 
-# && restart sudo service logstash restart && sudo service kibana restart 
+CMD gosu elasticsearch elasticsearch & \
+          gosu logstash logstash agent -f logstash-syslog.conf & \
+          gosu kibana kibana
