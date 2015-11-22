@@ -5,7 +5,7 @@ Vagrant.configure(2) do |config|
 
   config.vm.synced_folder ".", "/home/core/JetMQ", id: "core", :nfs => true,  :mount_options   => ['nolock,vers=3,udp']
 
-  config.vm.network "forwarded_port", guest: 80, host: 80
+  config.vm.network "forwarded_port", guest: 3000, host: 3000
   config.vm.network "forwarded_port", guest: 1883, host: 1883
   config.vm.network "forwarded_port", guest: 5601, host: 5601
 
@@ -17,6 +17,4 @@ Vagrant.configure(2) do |config|
      sudo chmod +x /opt/bin/docker-compose
    fi
   "
-  config.vm.provision :shell, :inline => "cd JetMQ/ && docker-compose stop && docker-compose build", :run => "always"
-
 end

@@ -76,7 +76,7 @@ RUN set -x \
 
 ENV PATH /opt/logstash/bin:$PATH
 
-ADD logstash/logstash-syslog.conf logstash-syslog.conf
+COPY logstash/logstash-syslog.conf logstash-syslog.conf
 
 EXPOSE 5000
 
@@ -99,6 +99,12 @@ ENV PATH /opt/kibana/bin:$PATH
 
 EXPOSE 5601
 
+# Mem tweaks
+
+ADD memtweak.sh memtweak.sh
+
+RUN sudo bash memtweak.sh
+ 
 # Ending
 
 CMD gosu elasticsearch elasticsearch & \
