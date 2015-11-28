@@ -6632,6 +6632,9 @@ body {
 .section-primary .background-image {
   opacity: 0.5;
 }
+.section-primary a {
+  color: #000000;
+}
 .section-info {
   background-color: #5bc0de !important;
   color: #ffffff;
