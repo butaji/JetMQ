@@ -99,14 +99,8 @@ ENV PATH /opt/kibana/bin:$PATH
 
 EXPOSE 5601
 
-# Mem tweaks
-
-ADD memtweak.sh memtweak.sh
-
-RUN sudo bash memtweak.sh
- 
 # Ending
 
-CMD gosu elasticsearch elasticsearch & \
+CMD gosu elasticsearch elasticsearch -d && \
           gosu logstash logstash agent -f logstash-syslog.conf & \
           gosu kibana kibana

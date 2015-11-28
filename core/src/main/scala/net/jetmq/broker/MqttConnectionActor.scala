@@ -3,6 +3,7 @@ package net.jetmq.broker
 import akka.actor.{ActorRef, FSM}
 import akka.pattern.ask
 import akka.util.Timeout
+import net.jetmq.infra.PacketTrace
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -21,12 +22,14 @@ case class ConnectionSessionBag(session: ActorRef, connection: ActorRef) extends
 
 class MqttConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, ConnectionBag] {
 
+  val log_actor = context.system.actorSelection("akka://jetmq/system/*LogstashTcpUploader")
+
   startWith(Waiting, EmptyConnectionBag())
 
   when(Active) {
     case Event(p: Packet, bag: ConnectionSessionBag) => {
 
-      log.info("<- " + p)
+      log_actor ! PacketTrace(self.path.toString, false, p)
 
       bag.connection ! SendingPacket(p)
       stay
@@ -51,7 +54,7 @@ class MqttConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Conne
     }
 
     case Event(ReceivedPacket(c: Packet), bag: ConnectionSessionBag) => {
-      log.info("-> " + c)
+      log_actor ! PacketTrace(self.path.toString, true, c)
       bag.session ! c
       stay
     }
@@ -79,7 +82,7 @@ class MqttConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, Conne
       val sessionF: Future[ActorRef] = ask(sessions, c).mapTo[ActorRef]
       val session = Await.result(sessionF, timeout.duration)
 
-      log.info("-> " + c)
+      log_actor ! PacketTrace(self.path.toString, true, c)
       session ! c
 
       goto(Active) using ConnectionSessionBag(session, sender)

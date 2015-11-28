@@ -19,6 +19,5 @@ libraryDependencies ++= Seq(
   "org.scodec" %% "scodec-core" % "1.7.1",
   "org.scodec" %% "scodec-bits" % "1.0.9",
   "org.scalaz" %% "scalaz-core" % "7.1.3",
-  "ch.qos.logback" % "logback-classic" % "1.1.3",
-  "net.logstash.logback" % "logstash-logback-encoder" % "3.0"
+  "com.typesafe.play" %% "play-json" % "2.4.0"
 )
