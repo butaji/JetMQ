@@ -1474,6 +1474,7 @@ blockquote {
   margin: 0 0 20px;
   font-size: 17.5px;
   border-left: 5px solid #eeeeee;
+  background-color: rgb(32, 45, 59);
 }
 blockquote p:last-child,
 blockquote ul:last-child,
@@ -1531,9 +1532,15 @@ samp {
 code {
   padding: 2px 4px;
   font-size: 90%;
-  color: #c7254e;
-  background-color: #f9f2f4;
-  border-radius: 4px;
+}
+code span.comment {
+  color: rgb(127,127,127);
+}
+code span.command {
+  color: rgb(70,122,248);
+}
+code span.args {
+  color: rgb(56,193,241);
 }
 kbd {
   padding: 2px 4px;

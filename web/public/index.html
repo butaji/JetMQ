@@ -1,5 +1,7 @@
-<html>
-  <head>
+<html><head>
+    <meta name="keywords" content="mqtt, iot, scala, akka">
+    <title>JetMQ - lightweight MQTT message broker (Scala, JVM, Akka)</title>
+    <meta name="description" content="It is a fast and general MQTT&nbsp;broker for large-scale Internet of Things&nbsp;projects. JetMQ allows to build high-performance applications that are responsive, resilient, elastic and message-driven">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
@@ -23,9 +25,6 @@
             <li class="active">
               <a href="#">Home</a>
             </li>
-            <li>
-              <a href="#">Contacts</a>
-            </li>
           </ul>
         </div>
       </div>
@@ -42,10 +41,29 @@
                 <b>JetMQ</b>
               </h1>
               <p>It is a fast and general
-              <b>MQTT</b>broker for large-scale
-              <b>Internet of Things</b>&nbsp;projects. JetMQ allows to build high-performance
-              applications that are responsive, resilient, elastic and message-driven</p>
-              <a class="active btn btn-large btn-lg btn-primary">Try it</a>
+                <b>MQTT&nbsp;</b>broker for large-scale
+                <b>Internet of Things</b>&nbsp;projects. JetMQ allows to build high-performance
+                applications that are responsive, resilient, elastic and message-driven</p>
+              <blockquote>
+                <p>
+                  <code>
+                    <span class="comment"># To try it just run</span>
+                    <br>
+                    <br>
+                    <span class="command">git</span>
+                    <span class="args">clone&nbsp;</span>http://github.com/butaji/JetMQ
+                    <br>
+                    <span class="command">cd</span>
+                    <span class="args">JetMQ</span>
+                    <br>
+                    <span class="command">docker-compose</span>
+                    <span class="args">up -d</span>
+                    <br>
+                    <br>
+                    <span class="comment"># now it's running. Check 1883 port</span>
+                  </code>
+                </p>
+              </blockquote>
             </div>
           </div>
         </div>
@@ -57,20 +75,20 @@
           <div class="col-md-6">
             <h1 contenteditable="true">MQTT</h1>
             <p contenteditable="true">MQTT is a machine-to-machine (M2M)/"Internet of Things" connectivity protocol.
-            It was designed as an extremely lightweight publish/subscribe messaging
-            transport. It is useful for connections with remote locations where a small
-            code footprint is required and/or network bandwidth is at a premium.
-            <br>We are working to support v. 3.1.1, you can find it here
-            <a href="http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html"> http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html</a>
+              It was designed as an extremely lightweight publish/subscribe messaging
+              transport. It is useful for connections with remote locations where a small
+              code footprint is required and/or network bandwidth is at a premium.
+              <br>We are working to support v. 3.1.1, you can find it here
+              <a href="http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html"> http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html</a>
             </p>
           </div>
           <div class="col-md-6">
             <h1>JVM, Akka, Scala</h1>
             <p>This platform allows to build powerful concurrent &amp; distributed applications
-            more easily.Akka is a toolkit and runtime for building highly concurrent,
-            distributed, and resilient message-driven applications on the JVM more
-            information by the link&nbsp;http://akka.io
-            <br>
+              more easily.Akka is a toolkit and runtime for building highly concurrent,
+              distributed, and resilient message-driven applications on the JVM more
+              information by the link&nbsp;http://akka.io
+              <br>
             </p>
           </div>
         </div>
@@ -82,12 +100,12 @@
           <div class="col-sm-6">
             <h1>Development</h1>
             <p>Project currently in the development phase. You can join and make it better
-            on github.com</p>
+              on github.com</p>
           </div>
           <div class="col-sm-6">
             <p class="text-info text-right">
-            <br>
-            <br>
+              <br>
+              <br>
             </p>
             <div class="row">
               <div class="col-md-12 hidden-lg hidden-md hidden-sm text-left">
@@ -99,23 +117,23 @@
             </div>
             <div class="row">
               <div class="col-md-12 hidden-xs text-right">
-                <a href="#"><i class="fa fa-3x fa-fw fa-github text-inverse"></i></a>
-                <a href="#"><i class="fa fa-3x fa-fw fa-envelope text-inverse"></i></a>
+                <a href="http://github.com/butaji/JetMQ"><i class="fa fa-3x fa-fw fa-github text-inverse"></i></a>
+                <a href="mailto:vitaly.baum+jetmq@gmail.com"><i class="fa fa-3x fa-fw fa-envelope text-inverse"></i></a>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </footer> 
+    </footer>
     <script>
-(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      
+      ga('create', 'UA-70134551-1', 'auto');
+      ga('send', 'pageview');
+    </script>
+  
 
-ga('create', 'UA-70134551-1', 'auto');
-ga('send', 'pageview');
-
-    </script>  
-  </body>
-</html>
+</body></html>

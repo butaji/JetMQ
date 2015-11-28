@@ -11,7 +11,7 @@ sealed trait Packet {
 }
 
 case class Header(dup: Boolean, qos: Int, retain: Boolean) {
-  assert(qos >= 0 && qos <= 2, "qos can't be outside [0,1,2]")
+  assert(qos >= 0 && qos <= 2, "qos can't be outside [0,1,2], was " + qos)
 }
 
 case class ConnectFlags(username: Boolean,
