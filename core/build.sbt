@@ -21,3 +21,5 @@ libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-core" % "7.1.3",
   "com.typesafe.play" %% "play-json" % "2.4.0"
 )
+
+enablePlugins(JavaAppPackaging)

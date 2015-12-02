@@ -6,7 +6,7 @@ core:
     - "1883:1883"
   restart: always
   links:
-    - elk
+    - logstash
 
 web:
   build: web/
@@ -15,12 +15,33 @@ web:
     - "3000:3000"
   restart: always
 
-elk:
-  build: elk/
-  hostname: elk
+elastic:
+  image: elasticsearch
+  command: elasticsearch -Des.network.host=0.0.0.0
+  hostname: elastic
+  ports:
+    - "9200:9200"
+  restart: always
+
+logstash:
+  image: logstash
+  command: logstash -f /etc/logstash/conf.d/logstash.conf
+  hostname: logstash
+  volumes:
+    - ./logstash:/etc/logstash/conf.d
+  ports:
+    - "5000:5000"
+  restart: always
+  links:
+    - elastic
+
+kibana:
+  image: kibana
+  hostname: kibana
+  volumes:
+    - ./kibana/kibana.yml:/opt/kibana/config/kibana.yml
   ports:
     - "5601:5601"
-  expose:
-    - "5000:5000"
-    - "9200:9200"
-  restart: always 
+  restart: always
+  links:
+    - elastic

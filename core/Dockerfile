@@ -42,17 +42,18 @@ RUN mkdir /app
 
 WORKDIR /app
 
-RUN sbt reload plugins
+RUN sbt reload plugins -mem 512
 
+ADD ./project/plugins.sbt /app/project/plugins.sbt
 ADD ./build.sbt /app/build.sbt
 
-RUN sbt compile
+RUN sbt compile -mem 512
 #cache everything before if wasnt changed
 ADD . /app
 
 EXPOSE 1883
 
 RUN sbt compile
+RUN sbt stage
 
-CMD sbt "run-main net.jetmq.broker.Main" -mem 300
-
+CMD /app/target/universal/stage/bin/jetmq -J-Xmx512m

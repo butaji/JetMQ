@@ -7,7 +7,7 @@ import akka.event.Logging._
 
 class LogstashTcpUploader extends Actor {
 
-  val address = new InetSocketAddress("elk", 5000)
+  val address = new InetSocketAddress("logstash", 5000)
   val logstash = context.actorOf(Props(new LogstashTcpConnection(address)))
 
   def receive = {
