@@ -19,17 +19,23 @@ class LogstashTcpConnection(remote: InetSocketAddress) extends Actor {
   val manager = IO(Tcp)(context.system)
   manager ! Connect(remote)
 
+  var delay = 1.second
+
   def receive = {
     case CommandFailed(x: Connect) => {
       println("[Error] LogstashTcpConnection: connect failed " + x)
 
-      println("[Info] LogstashTcpConnection: Reconnecting...")
-      context.system.scheduler.scheduleOnce(1.second) {
+      println("[Info] LogstashTcpConnection: Reconnecting...after " + delay)
+      delay = delay * 2
+      context.system.scheduler.scheduleOnce(delay) {
         manager ! Connect(remote)
       }
     }
 
     case c@Connected(remote, local) =>
+
+      delay = 1.second
+
       println("[Info] LogstashTcpConnection: connected to " + remote)
       val connection = sender()
       connection ! Register(self)
@@ -59,9 +65,9 @@ class LogstashTcpConnection(remote: InetSocketAddress) extends Actor {
         case _: ConnectionClosed =>
           println("[Info] LogstashTcpConnection: Connection closed")
 
-          println("[Info] LogstashTcpConnection: Reconnecting...")
+          println("[Info] LogstashTcpConnection: Reconnecting...after " + delay)
 
-          context.system.scheduler.scheduleOnce(1.second) {
+          context.system.scheduler.scheduleOnce(delay) {
             manager ! Connect(remote)
           }
 
