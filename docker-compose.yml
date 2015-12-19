@@ -39,6 +39,7 @@ logstash:
 kibana:
   image: kibana
   hostname: kibana
+  mem_limit: 400m  
   volumes:
     - ./kibana/kibana.yml:/opt/kibana/config/kibana.yml
   ports:
