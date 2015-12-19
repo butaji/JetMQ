@@ -19,7 +19,10 @@ libraryDependencies ++= Seq(
   "org.scodec" %% "scodec-core" % "1.7.1",
   "org.scodec" %% "scodec-bits" % "1.0.9",
   "org.scalaz" %% "scalaz-core" % "7.1.3",
-  "com.typesafe.play" %% "play-json" % "2.4.0"
+  "com.typesafe.play" %% "play-json" % "2.4.0",
+  "com.typesafe.akka" % "akka-stream-experimental_2.11" % "2.0-M2",
+  "com.typesafe.akka" % "akka-http-core-experimental_2.11" % "2.0-M2",
+  "com.typesafe.akka" % "akka-http-experimental_2.11" % "2.0-M2"
 )
 
 enablePlugins(JavaAppPackaging)

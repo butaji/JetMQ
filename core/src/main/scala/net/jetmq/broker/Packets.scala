@@ -77,7 +77,7 @@ object ConnectFlags {
 object Codecs {
   val string = variableSizeBytes(uint16, utf8)
   val byte_padding = constant(bin"00000000")
-  val connect_flags_prefix = constant(hex"00044d51545404".bits)
+  val connect_flags_prefix = choice(constant(hex"00044d51545404".bits), constant(hex"00064d514973647003".bits))
   val qos = uint2
   val return_code = uint16
   val message_id = uint16
