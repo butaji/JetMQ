@@ -34,13 +34,13 @@ class LogstashTcpUploader extends Actor {
   def receive = {
     case InitializeLogger(_)                        => sender() ! LoggerInitialized
     case m @ Error(cause, logSource, logClass, message) => {
-      println(s"[Error] $cause $logSource $logClass $message")
+      println(Console.RED + s"[Error] $cause $logSource $logClass $message" + Console.WHITE)
     }
     case m @ Warning(logSource, logClass, message)      => {
-      println(s"[Warn] $logSource $logClass $message")
+      println(Console.YELLOW + s"[Warn] $logSource $logClass $message" + Console.WHITE)
     }
     case m : PacketTrace          => {
-      println((if(m.in) "->" else "<-") + " " + m.packet)
+      println(Console.GREEN + ((if(m.in) "->" else "<-") + " " + m.packet) + Console.WHITE)
     }
     case m @ Info(logSource, logClass, message)         => {
       println(s"[Info] $logSource $logClass $message")
@@ -53,17 +53,17 @@ class LogstashTcpUploader extends Actor {
   def receive(logstash: ActorRef):Receive = {
     case InitializeLogger(_)                        => sender() ! LoggerInitialized
     case m @ Error(cause, logSource, logClass, message) => {
-      println(s"[Error] $cause $logSource $logClass $message")
+      println(Console.RED + s"[Error] $cause $logSource $logClass $message" + Console.WHITE)
 
       logstash ! LogstashMessage("Error" ,logSource, logClass.getCanonicalName, message.toString, Some(cause.toString))
     }
     case m @ Warning(logSource, logClass, message)      => {
-      println(s"[Warn] $logSource $logClass $message")
+      println(Console.YELLOW + s"[Warn] $logSource $logClass $message" + Console.WHITE)
 
       logstash ! LogstashMessage("Warning" ,logSource, logClass.getCanonicalName, message.toString)
     }
     case m : PacketTrace          => {
-      println((if(m.in) "->" else "<-") + " " + m.packet)
+      println(Console.GREEN + (if(m.in) "->" else "<-") + " " + m.packet + Console.WHITE)
 
       logstash ! m
     }
