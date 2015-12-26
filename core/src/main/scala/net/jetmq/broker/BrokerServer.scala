@@ -4,7 +4,7 @@ import akka.actor._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.IncomingConnection
 import akka.http.scaladsl.model.HttpMethods._
-import akka.http.scaladsl.model.ws.{BinaryMessage, UpgradeToWebsocket}
+import akka.http.scaladsl.model.ws.{Message, BinaryMessage, UpgradeToWebsocket}
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
 import akka.stream.ActorMaterializer
 import akka.stream.actor.ActorPublisher
@@ -28,11 +28,17 @@ object BrokerServer {
           req.header[UpgradeToWebsocket] match {
             case Some(upgrade) => {
 
-              val handler = system.actorOf(Props(new WsConnectionActor(sessions)).withMailbox("priority-dispatcher"),
+              val handler = system.actorOf(Props(new TcpConnectionActor(sessions)).withMailbox("priority-dispatcher"),
                 connection.remoteAddress.getHostString() + ":" + connection.remoteAddress.getPort())
 
+              val sink: Sink[Message, Any] =
+                Sink.foreach { (m: Message) => m match {
+                  case BinaryMessage.Strict(data) => handler ! data
+                  case x => {}
+                }};
+
               upgrade.handleMessagesWithSinkSource(
-                Sink.foreach(handler ! _),
+                sink,
                 Source(ActorPublisher[BinaryMessage](handler))
               )
             }
@@ -59,7 +65,7 @@ object BrokerServer {
         println("Accepted new connection from " + connection.remoteAddress)
 
         val handler = system.actorOf(Props(new TcpConnectionActor(sessions)).withMailbox("priority-dispatcher"),
-                connection.remoteAddress.getHostString + ":" + connection.remoteAddress.getPort)
+          connection.remoteAddress.getHostString + ":" + connection.remoteAddress.getPort)
 
         val publisher = ActorPublisher[ByteString](handler)
 

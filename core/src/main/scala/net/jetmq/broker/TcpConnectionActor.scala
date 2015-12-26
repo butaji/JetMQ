@@ -36,12 +36,13 @@ class TcpConnectionActor(sessions: ActorRef) extends ActorPublisherWithBuffer[By
     }
 
     case Request(count) => {
-      log.info("Requested: " + count + " demand is " + totalDemand)
+      log.info("Requested: " + count + " demand is " + totalDemand + " and buffer is " + buffer.length)
       deliverBuffer()
     }
 
     case Cancel => {
       log.info("was canceled")
+      onComplete()
       context.stop(self)
     }
 
@@ -55,6 +56,7 @@ class TcpConnectionActor(sessions: ActorRef) extends ActorPublisherWithBuffer[By
 
     case Closing => {
       onComplete()
+      context.stop(self)
     }
 
     case x => {
