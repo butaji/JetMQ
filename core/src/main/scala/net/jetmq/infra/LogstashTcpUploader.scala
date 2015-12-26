@@ -4,6 +4,8 @@ import java.net.InetSocketAddress
 
 import akka.actor.{ActorRef, Actor, Props}
 import akka.event.Logging._
+import akka.pattern.BackoffSupervisor
+import scala.concurrent.duration._
 
 class LogstashTcpUploader extends Actor {
 
@@ -13,7 +15,15 @@ class LogstashTcpUploader extends Actor {
     val address = new InetSocketAddress(config.getString("logstash.host"), config.getInt("logstash.port"))
     println("[Info] Enabling Logstash at " + address)
 
-    val logstash = context.actorOf(Props(new LogstashTcpConnection(address)))
+    val logstashProps = BackoffSupervisor.props(
+      Props(new LogstashTcpConnection(address)),
+      childName = "logstashConnection",
+      minBackoff = 3.seconds,
+      maxBackoff = 30.seconds,
+      randomFactor = 0.2)
+
+    val logstash = context.actorOf(logstashProps)
+
     context.become(receive(logstash))
   } else {
     println("[Info] Logstash turned off")

@@ -2,76 +2,63 @@ package net.jetmq.infra
 
 import java.net.InetSocketAddress
 
-import akka.actor.Actor
-import akka.io.Tcp._
-import akka.io.{IO, Tcp}
+import akka.io.Tcp.Received
+import akka.stream.ActorMaterializer
+import akka.stream.actor.ActorPublisher
+import akka.stream.actor.ActorPublisherMessage.{Cancel, Request}
+import akka.stream.scaladsl.{Sink, Source, Tcp}
 import akka.util.ByteString
-import net.jetmq.broker.Packet
+import net.jetmq.broker.{ActorPublisherWithBuffer, Packet}
 import play.api.libs.json._
 
-import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
-class LogstashTcpConnection(remote: InetSocketAddress) extends Actor {
+class LogstashTcpConnection(remote: InetSocketAddress) extends ActorPublisherWithBuffer[ByteString] {
 
-  implicit val disp = context.system.dispatcher
+  implicit val materializer = ActorMaterializer()(context.system)
 
-  val manager = IO(Tcp)(context.system)
-  manager ! Connect(remote)
+    val connection = Tcp(context.system).outgoingConnection(remote)
 
-  var delay = 1.second
+    val source = Source(ActorPublisher[ByteString](self))
+
+    source
+      .map(x => x)
+      .via(connection)
+      .runWith(Sink.ignore)
+      .onComplete(x => {
+        print("[Warn] LogstashTcpConnection sending completed. Closing")
+        context.stop(self)
+      })
 
   def receive = {
-    case CommandFailed(x: Connect) => {
-      println("[Error] LogstashTcpConnection: connect failed " + x)
 
-      println("[Info] LogstashTcpConnection: Reconnecting...after " + delay)
-      delay = delay * 2
-      context.system.scheduler.scheduleOnce(delay) {
-        manager ! Connect(remote)
-      }
+    case data: PacketTrace => {
+      implicit val fmt1 = PacketFormat
+      implicit val fmt2 = Json.format[PacketTrace]
+      val s: String = Json.toJson(data).toString() + "\n"
+      onNextBuffered(ByteString(s))
     }
 
-    case c@Connected(remote, local) =>
+    case data: LogstashMessage => {
+      implicit val fmt2 = Json.format[LogstashMessage]
+      val s: String = Json.toJson(data).toString() + "\n"
+      onNextBuffered(ByteString(s))
+    }
 
-      delay = 1.second
+    case Received(data) => {
+      println("[Info] LogstashTcpConnection received " + data)
+    }
 
-      println("[Info] LogstashTcpConnection: connected to " + remote)
-      val connection = sender()
-      connection ! Register(self)
-      context become {
-        case data: PacketTrace =>
-          implicit val fmt1 = PacketFormat
-          implicit val fmt2 = Json.format[PacketTrace]
+    case Request(count) => {
+      println("[Info] LogstashTcpConnection Requested: " + count + " demand is " + totalDemand)
+      deliverBuffer()
+    }
 
-          val s: String = Json.toJson(data).toString() + "\n"
-
-          connection ! Write(ByteString(s))
-
-        case data: LogstashMessage =>
-          implicit val fmt2 = Json.format[LogstashMessage]
-
-          val s: String = Json.toJson(data).toString() + "\n"
-
-          connection ! Write(ByteString(s))
-
-        case CommandFailed(w: Write) =>
-          // O/S buffer was full
-          println("[Warning] LogstashTcpConnection: Write failed")
-        case Received(data) =>
-          println("[Info] received " + data)
-        case "close" =>
-          connection ! Close
-        case _: ConnectionClosed =>
-          println("[Info] LogstashTcpConnection: Connection closed")
-
-          println("[Info] LogstashTcpConnection: Reconnecting...after " + delay)
-
-          context.system.scheduler.scheduleOnce(delay) {
-            manager ! Connect(remote)
-          }
-
-      }
+    case Cancel => {
+      println("[Info] LogstashTcpConnection was canceled")
+      context.stop(self)
+    }
   }
 }
 
@@ -91,6 +78,3 @@ object PacketFormat extends Format[Packet] {
 
   override def reads(json: JsValue): JsResult[Packet] = ???
 }
-
-
-
