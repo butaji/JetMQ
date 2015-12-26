@@ -44,18 +44,18 @@ object Helpers {
       }
     }
 
-    def toByteSring: ByteString = {
+    def toByteString: ByteString = {
       ByteString(s.toBin)
     }
 
     def toTcpReceived: Tcp.Received = {
 
-      Tcp.Received(s.toByteSring)
+      Tcp.Received(s.toByteString)
 
     }
 
     def toTcpWrite: Tcp.Write = {
-      Tcp.Write(s.toByteSring)
+      Tcp.Write(s.toByteString)
     }
 
   }

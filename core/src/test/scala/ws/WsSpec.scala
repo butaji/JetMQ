@@ -33,11 +33,11 @@ class WsSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificati
       val s = Source(ActorPublisher[BinaryMessage](h))
       s.to(Sink.actorRef(self, "complete")).run()
 
-      h ! BinaryMessage.Strict("102100064d51497364700302003c0013636c69656e7449642d304a584b454b6667547a".toByteSring)
+      h ! BinaryMessage.Strict("102100064d51497364700302003c0013636c69656e7449642d304a584b454b6667547a".toByteString)
 
-      expectMsg(BinaryMessage.Strict("20020000".toByteSring))
+      expectMsg(BinaryMessage.Strict("20020000".toByteString))
 
-      h ! BinaryMessage.Strict("e000".toByteSring)
+      h ! BinaryMessage.Strict("e000".toByteString)
       expectMsg("complete")
       expectNoMsg(Bag.wait_time)
       success
