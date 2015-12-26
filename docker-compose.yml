@@ -12,16 +12,16 @@ core:
 web:
   build: web/
   hostname: web
-  ports:
-    - "3000:3000"
+  expose:
+    - "3000"
   restart: always
 
 elastic:
   image: elasticsearch
   command: elasticsearch -Des.network.host=0.0.0.0
   hostname: elastic
-  ports:
-    - "9200:9200"
+  expose:
+    - "9200"
   restart: always
 
 logstash:
@@ -30,8 +30,8 @@ logstash:
   hostname: logstash
   volumes:
     - ./logstash:/etc/logstash/conf.d
-  ports:
-    - "5000:5000"
+  expose:
+    - "5000"
   restart: always
   links:
     - elastic

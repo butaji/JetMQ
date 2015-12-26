@@ -1,71 +1,65 @@
 package net.jetmq.broker
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import akka.io.Tcp
-import Helpers._
+import akka.actor.{ActorLogging, ActorRef, Props}
+import akka.stream.actor.ActorPublisherMessage.{Cancel, Request}
+import akka.util.ByteString
+import net.jetmq.broker.Helpers._
+import scodec.Attempt.Failure
 
 case class ReceivedPacket(packet: Packet)
+
 case class SendingPacket(packet: Packet)
+
 case object Closing
 
-class TcpConnectionActor(sessions: ActorRef) extends Actor with ActorLogging {
+class TcpConnectionActor(sessions: ActorRef) extends ActorPublisherWithBuffer[ByteString] with ActorLogging {
 
   val mqtt = context.actorOf(Props(new MqttConnectionActor(sessions)))
 
+
   def receive = {
-    case Tcp.Received(data) => {
+
+    case data: ByteString => {
+
+      log.info("" + data.toBitVector)
 
       val packets = PacketsHelper.decode(data.toBitVector)
 
       packets.foreach {
         case Left(p: Packet) => mqtt ! ReceivedPacket(p)
-        case Right(p) => {
+        case Right(p: Failure) => {
           log.warning("" + p)
-          sender ! Tcp.Close
+
+          onError(new Throwable(p.cause.messageWithContext))
         }
       }
-
-      context become receive(sender)
     }
 
-  }
+    case Request(count) => {
+      log.info("Requested: " + count + " demand is " + totalDemand)
+      deliverBuffer()
+    }
 
-
-  def receive(connection: ActorRef):Receive = {
-
-    case Tcp.Received(data) => {
-
-      val packets = PacketsHelper.decode(data.toBitVector)
-
-      packets.foreach {
-        case Left(p: Packet) => mqtt ! ReceivedPacket(p)
-        case Right(p) => {
-          sender ! Tcp.Close
-        }
-      }
+    case Cancel => {
+      log.info("was canceled")
+      context.stop(self)
     }
 
     case SendingPacket(p) => {
 
       val bits = PacketsHelper.encode(p)
+      val envelope = ByteString(bits.require.toByteArray)
 
-      log.info("" + connection)
-      connection ! bits.toTcpWrite
+      onNextBuffered(envelope)
     }
 
     case Closing => {
-      connection ! Tcp.Close
-    }
-
-    case f: Tcp.ConnectionClosed => {
-
-      log.info("Connection closed " + f)
-      context stop self
+      onComplete()
     }
 
     case x => {
 
-      log.error("Unexpected " + x)
+      log.error("Unexpected " + x.getClass.getCanonicalName())
     }
   }
 }
