@@ -39,7 +39,7 @@ object BrokerServer {
 
               upgrade.handleMessagesWithSinkSource(
                 sink,
-                Source(ActorPublisher[BinaryMessage](handler))
+                Source(ActorPublisher[ByteString](handler)).map(x => BinaryMessage(x))
               )
             }
             case None => HttpResponse(400, entity = "Not a valid websocket request!")
