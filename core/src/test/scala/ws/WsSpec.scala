@@ -6,6 +6,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.actor.ActorPublisher
 import akka.stream.scaladsl.{Sink, Source}
 import akka.testkit.{ImplicitSender, TestKit}
+import akka.util.ByteString
 import net.jetmq.broker.Helpers._
 import net.jetmq.broker._
 import net.jetmq.tests.Bag
@@ -23,14 +24,14 @@ class WsSpec extends TestKit(ActorSystem()) with ImplicitSender with Specificati
     implicit val materializer = ActorMaterializer()(system)
 
     def create_actor(name: String) = {
-      system.actorOf(Props(new WsConnectionActor(devices)), name)
+      system.actorOf(Props(new TcpConnectionActor(devices)), name)
     }
 
     "Connect to Ws" in {
 
       val h = create_actor("53180")
 
-      val s = Source(ActorPublisher[BinaryMessage](h))
+      val s = Source(ActorPublisher[ByteString](h)).map(x => BinaryMessage(x))
       s.to(Sink.actorRef(self, "complete")).run()
 
       h ! BinaryMessage.Strict("102100064d51497364700302003c0013636c69656e7449642d304a584b454b6667547a".toByteString)
