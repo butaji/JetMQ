@@ -1,5 +1,6 @@
 package integration
 
+import akka.actor.Status.Failure
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.io.Tcp
 import akka.stream.ActorMaterializer
@@ -13,7 +14,7 @@ import net.jetmq.tests.Bag
 import org.specs2.mutable._
 import org.specs2.specification.Scope
 
-class BasicSpec extends TestKit(ActorSystem()) with ImplicitSender with SpecificationLike with Scope {
+class BasicSpec extends TestKit(ActorSystem("BasicSpec")) with ImplicitSender with SpecificationLike with Scope {
 
   sequential //state dependant
 
@@ -131,7 +132,7 @@ class BasicSpec extends TestKit(ActorSystem()) with ImplicitSender with Specific
       val h = create_actor("51214")
 
       h ! "10140002686a04020000000a6d79636c69656e746964".toByteString //Broken package
-      expectMsg(Tcp.Close)
+      expectMsgType[Failure]
       expectNoMsg(Bag.wait_time)
       success
     }

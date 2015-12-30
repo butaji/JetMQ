@@ -13,7 +13,7 @@ import net.jetmq.tests.Bag
 import org.specs2.mutable._
 import org.specs2.specification.Scope
 
-class OfflineSpec extends TestKit(ActorSystem()) with ImplicitSender with SpecificationLike with Scope {
+class OfflineSpec extends TestKit(ActorSystem("OfflineSpec")) with ImplicitSender with SpecificationLike with Scope {
 
   sequential //state dependant
 

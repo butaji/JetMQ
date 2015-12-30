@@ -25,4 +25,6 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" % "akka-http-experimental_2.11" % "2.0-M2"
 )
 
+parallelExecution in Test := false
+
 enablePlugins(JavaAppPackaging)

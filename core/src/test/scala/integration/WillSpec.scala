@@ -13,7 +13,7 @@ import net.jetmq.tests.Bag
 import org.specs2.mutable._
 import org.specs2.specification.Scope
 
-class WillSpec extends TestKit(ActorSystem()) with ImplicitSender with SpecificationLike with Scope {
+class WillSpec extends TestKit(ActorSystem("WillSpec")) with ImplicitSender with SpecificationLike with Scope {
 
   sequential //state dependant
 
@@ -87,6 +87,7 @@ class WillSpec extends TestKit(ActorSystem()) with ImplicitSender with Specifica
       expectMsg("9003000202".toByteString) //Suback(Header(false,0,false),2,Vector(2))
 
       h3 ! Tcp.PeerClosed
+      expectMsg(Tcp.Close)
 
       expectMsg("34220007546f7069632f430001636c69656e74206e6f7420646973636f6e6e6563746564".toByteString) //Publish(Header(false,2,false),Topic/C,1,ByteVector(23 bytes, 0x636c69656e74206e6f7420646973636f6e6e6563746564))
 

@@ -13,7 +13,7 @@ import net.jetmq.tests.Bag
 import org.specs2.mutable._
 import org.specs2.specification.Scope
 
-class OverlappingSpec extends TestKit(ActorSystem()) with ImplicitSender with SpecificationLike with Scope {
+class OverlappingSpec extends TestKit(ActorSystem("OverlappingSpec")) with ImplicitSender with SpecificationLike with Scope {
 
   sequential //state dependant
 
@@ -79,15 +79,19 @@ class OverlappingSpec extends TestKit(ActorSystem()) with ImplicitSender with Sp
       expectMsg("20020000".toByteString) //Connack(Header(false,0,false),0)
 
       h ! "821800020008546f706963412f23020008546f706963412f2b01".toByteString //Subscribe(Header(false,1,false),2,Vector((TopicA/#,2), (TopicA/+,1)))
+      expectMsg("900400020201".toByteString) //Suback(Header(false,0,false),2,Vector(2, 1))
 
       h ! "34250008546f706963412f4300036f7665726c617070696e6720746f7069632066696c74657273".toByteString //Publish(Header(false,2,false),TopicA/C,3,ByteVector(25 bytes, 0x6f7665726c617070696e6720746f7069632066696c74657273))
-      expectMsg("900400020201".toByteString) //Suback(Header(false,0,false),2,Vector(2, 1))
+      Thread.sleep(500) //to granted order
+
       expectMsg("50020003".toByteString) //Pubrec(Header(false,0,false),3)
 
       h ! "62020003".toByteString //Pubrel(Header(false,1,false),3)
-      expectMsg("70020003".toByteString) //Pubcomp(Header(false,0,false),3)
 
       expectMsg("34250008546f706963412f4300016f7665726c617070696e6720746f7069632066696c74657273".toByteString) //Publish(Header(false,2,false),TopicA/C,1,ByteVector(25 bytes, 0x6f7665726c617070696e6720746f7069632066696c74657273))
+
+      expectMsg("70020003".toByteString) //Pubcomp(Header(false,0,false),3)
+
 
       h ! "50020001".toByteString //Pubrec(Header(false,0,false),1)
       expectMsg("62020001".toByteString) //Pubrel(Header(false,1,false),1)

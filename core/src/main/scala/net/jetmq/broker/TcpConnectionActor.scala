@@ -31,6 +31,7 @@ class TcpConnectionActor(sessions: ActorRef) extends ActorPublisherWithBuffer[By
           log.warning("" + p)
 
           onError(new Throwable(p.cause.messageWithContext))
+          context.stop(self)
         }
       }
     }

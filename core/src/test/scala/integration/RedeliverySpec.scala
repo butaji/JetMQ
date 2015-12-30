@@ -13,7 +13,7 @@ import net.jetmq.tests.Bag
 import org.specs2.mutable._
 import org.specs2.specification.Scope
 
-class RedeliverySpec extends TestKit(ActorSystem()) with ImplicitSender with SpecificationLike with Scope {
+class RedeliverySpec extends TestKit(ActorSystem("RedeliverySpec")) with ImplicitSender with SpecificationLike with Scope {
   sequential //state dependant
 
   "Requests handler actor" should {
@@ -84,6 +84,8 @@ class RedeliverySpec extends TestKit(ActorSystem()) with ImplicitSender with Spe
       expectMsg("40020003".toByteString) //Puback(Header(false,0,false),3)
 
       h ! "340c0008546f706963412f430004".toByteString //Publish(Header(false,2,false),TopicA/C,4,ByteVector(empty))
+      Thread.sleep(100)
+
       expectMsg("50020004".toByteString) //Pubrec(Header(false,0,false),4)
       expectMsg("320c0008546f706963412f420001".toByteString) //Publish(Header(false,1,false),TopicA/B,1,ByteVector(empty))
 

@@ -6,7 +6,7 @@ import net.jetmq.broker._
 import org.specs2.mutable._
 import org.specs2.specification.Scope
 
-class BusSpec extends TestKit(ActorSystem()) with ImplicitSender with SpecificationLike with Scope {
+class BusSpec extends TestKit(ActorSystem("BusSpec")) with ImplicitSender with SpecificationLike with Scope {
 
   isolated
 
