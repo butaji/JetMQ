@@ -3,6 +3,5 @@ scala:
   - 2.11.7
 jdk:
   - oraclejdk8
-  - openjdk8
 script:
   - cd $TRAVIS_BUILD_DIR/core && sbt clean test
