@@ -51,16 +51,16 @@ class MqttConnectionActor(sessions: ActorRef) extends ActorSubscriber with Actor
 
     case OnNext(p: Packet) if (session == ActorRef.noSender) => onErrorThenStop(new Throwable("Actor not connected yet"))
 
+    case OnNext(d: Disconnect) => {
+      session ! Disconnect(Header(dup = false, qos = 0, retain = false))
+
+      onCompleteThenStop()
+    }
+
     case OnNext(p: Packet) => {
       session ! p
 
       log.info("Got " + p)
-    }
-
-    case d: Disconnect => {
-      session ! Disconnect(Header(dup = false, qos = 0, retain = false))
-
-      onCompleteThenStop()
     }
 
     case p: Packet => {
