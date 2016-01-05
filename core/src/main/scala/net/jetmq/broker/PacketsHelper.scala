@@ -4,31 +4,20 @@ import scodec.Attempt.{Failure, Successful}
 import scodec.bits.BitVector
 import scodec.{Attempt, Codec, DecodeResult}
 
-/**
-  * Created by vitalybaum on 21/11/15.
-  */
 object PacketsHelper {
 
-  def decode(b: BitVector): List[Either[Packet, Failure]] = {
+  def decode(b: BitVector): List[Packet] = {
 
-    try {
       val packet = Codec[Packet].decode(b)
 
       packet match {
         case Successful(DecodeResult(p: Packet, r)) if r.length > 0 => {
-          return Left(p) :: decode(r)
+          return p :: decode(r)
         }
         case Successful(DecodeResult(p: Packet, r)) if r.length == 0 => {
-          return List(Left(p))
-        }
-        case x:Failure => {
-          return List(Right(x))
+          return List(p)
         }
       }
-    } catch {
-      case err:Throwable => return List(Right(Failure(scodec.Err(err.getMessage))))
-
-    }
   }
 
   def encode(b: Packet): Attempt[BitVector] = {

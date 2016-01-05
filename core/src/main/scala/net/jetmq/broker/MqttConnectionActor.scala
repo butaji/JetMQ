@@ -1,9 +1,11 @@
 package net.jetmq.broker
 
-import akka.actor.{ActorRef, FSM}
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.pattern.ask
+import akka.stream.actor.ActorPublisherMessage.{Cancel, Request}
+import akka.stream.actor.ActorSubscriberMessage.{OnComplete, OnError, OnNext}
+import akka.stream.actor.{ActorSubscriber, MaxInFlightRequestStrategy, RequestStrategy}
 import akka.util.Timeout
-import net.jetmq.infra.PacketTrace
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -12,6 +14,7 @@ import scala.language.postfixOps
 sealed trait ConnectionState
 
 case object Active extends ConnectionState
+
 case object Waiting extends ConnectionState
 
 sealed trait ConnectionBag
@@ -20,105 +23,90 @@ case class EmptyConnectionBag() extends ConnectionBag
 
 case class ConnectionSessionBag(session: ActorRef, connection: ActorRef) extends ConnectionBag
 
-class MqttConnectionActor(sessions: ActorRef) extends FSM[ConnectionState, ConnectionBag] {
-
-  val log_actor = context.system.actorSelection("akka://jetmq/system/*LogstashTcpUploader")
-
-  startWith(Waiting, EmptyConnectionBag())
-
-  when(Active) {
-    case Event(p: Packet, bag: ConnectionSessionBag) => {
-
-      log_actor ! PacketTrace(self.path.toString, false, p)
-
-      bag.connection ! SendingPacket(p)
-      stay
-    }
-
-    case Event(ReceivedPacket(c: Connect), bag: ConnectionSessionBag) => {
-      log.info("Unexpected Connect. Closing peer")
-
-      bag.session ! Disconnect(Header(dup = false, qos = 0, retain = false))
-
-      bag.connection ! Closing
-      stay
-    }
-
-    case Event(ReceivedPacket(c: Disconnect), bag: ConnectionSessionBag) => {
-      log.info("Disconnect. Closing peer")
-
-      bag.session ! Disconnect(Header(dup = false, qos = 0, retain = false))
-
-      bag.connection ! Closing
-      stay
-    }
-
-    case Event(ReceivedPacket(c: Packet), bag: ConnectionSessionBag) => {
-      log_actor ! PacketTrace(self.path.toString, true, c)
-      bag.session ! c
-      stay
-    }
-
-    case Event(WrongState, b: ConnectionSessionBag) => {
-      log.info("Session was in a wrong state")
-
-      b.connection ! Closing
-      stay
-    }
-
-    case Event(KeepAliveTimeout, b: ConnectionSessionBag) => {
-      log.info("Keep alive timed out. Closing connection")
-
-      b.connection ! Closing
-
-      stay
-    }
+class MqttConnectionActor(sessions: ActorRef) extends ActorSubscriber with ActorPublisherWithBuffer[Packet] with ActorLogging {
+  override protected def requestStrategy: RequestStrategy = new MaxInFlightRequestStrategy(64) {
+    override def inFlightInternally: Int = buffer.length
   }
 
-  when(Waiting) {
-    case Event(ReceivedPacket(c: Connect), _) => {
+  var session = ActorRef.noSender
+
+  def receive = {
+
+    case OnNext(c: Connect) if (session != ActorRef.noSender) => {
+
+      onErrorThenStop(new Throwable("Actor already connected"))
+    }
+
+    case OnNext(c: Connect) => {
+
       implicit val timeout = Timeout(1 seconds)
 
       val sessionF: Future[ActorRef] = ask(sessions, c).mapTo[ActorRef]
-      val session = Await.result(sessionF, timeout.duration)
+      session = Await.result(sessionF, timeout.duration)
 
-      log_actor ! PacketTrace(self.path.toString, true, c)
       session ! c
 
-      goto(Active) using ConnectionSessionBag(session, sender)
+      log.info("Got " + c)
     }
+
+    case OnNext(p: Packet) if (session == ActorRef.noSender) => onErrorThenStop(new Throwable("Actor not connected yet"))
+
+    case OnNext(p: Packet) => {
+      session ! p
+
+      log.info("Got " + p)
+    }
+
+    case d: Disconnect => {
+      session ! Disconnect(Header(dup = false, qos = 0, retain = false))
+
+      onCompleteThenStop()
+    }
+
+    case p: Packet => {
+
+      log.info("Buffer length " + buffer.length + " and demand " + totalDemand)
+
+      onNextBuffered(p)
+    }
+
+    case Request(count) => {
+      log.info("Requested: " + count + " demand is " + totalDemand + " and buffer is " + buffer.length)
+      deliverBuffer()
+    }
+
+    case Cancel => {
+      log.info("was canceled")
+      onCompleteThenStop()
+    }
+
+    case WrongState => {
+      log.info("Session was in a wrong state")
+
+      onErrorThenStop(new Throwable("Session was in a wrong state"))
+    }
+
+    case KeepAliveTimeout => {
+      log.info("Keep alive timed out. Closing connection")
+
+      onErrorThenStop(new Throwable("Keep alive timed out. Closing connection"))
+    }
+
+    case OnComplete => onCompleteThenStop()
+
+    case OnError(err: Exception) => onErrorThenStop(err)
+
     case x => {
 
-      log.info("unexpected " + x + " for waiting. Closing peer")
-
-      sender ! Closing
-
-      stay
+      println("Got " + x.getClass().getCanonicalName() + " " + x + " from " + sender)
     }
   }
 
-  whenUnhandled {
 
-    case Event(x, _) => {
-      log.error("unexpected " + x + " for " + stateName + ". Closing peer")
-
-      sender ! Closing
-
-      stay
-    }
-  }
-
-  onTermination {
-    case StopEvent(x, s, d) => {
-      log.info("Terminated with " + x + " and " + s + " and " + d)
-    }
-  }
-
-  onTransition(handler _)
-
-  def handler(from: ConnectionState, to: ConnectionState): Unit = {
-    log.info("State changed from " + from + " to " + to)
-  }
-
-  initialize()
 }
+
+class TcpConnectionActor(s: ActorRef) extends Actor {
+  def receive = ???
+}
+
+

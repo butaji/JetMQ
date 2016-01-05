@@ -4,7 +4,7 @@ import akka.stream.actor.ActorPublisher
 
 import scala.annotation.tailrec
 
-abstract class ActorPublisherWithBuffer[T] extends ActorPublisher[T] {
+abstract trait ActorPublisherWithBuffer[T] extends ActorPublisher[T] {
   var buffer = Vector.empty[T]
 
   def onNextBuffered(envelope: T): Unit = {
