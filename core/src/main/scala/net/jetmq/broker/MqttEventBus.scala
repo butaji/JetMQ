@@ -2,23 +2,28 @@ package net.jetmq.broker
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 
+object Bus {
 
-case class BusSubscribe(topic: String, actor: ActorRef, qos: Int = 0)
-case class BusUnsubscribe(topic: String, actor: ActorRef)
+  case class Subscribe(topic: String, actor: ActorRef, qos: Int = 0)
 
+  case class Unsubscribe(topic: String, actor: ActorRef)
 
-case class BusPublish(topic: String, payload: Any, retain: Boolean = false, clean_retain: Boolean = false)
+  case class Publish(topic: String, payload: Any, retain: Boolean = false, clean_retain: Boolean = false)
 
-case class BusDeattach(actor: ActorRef)
+  case class Deattach(actor: ActorRef)
 
-case class PublishPayload(payload: Any, auto: Boolean, qos: Int = 0)
+  case class PublishPayload(payload: Any, auto: Boolean, qos: Int = 0)
+
+  case class BadSubscriptionException(msg: String) extends Throwable
+}
 
 class EventBusActor extends Actor with ActorLogging {
 
   context become working(List(), List())
 
   def working(subscriptions: List[(String, ActorRef, Int)], retains: List[(String, Any)]): Receive = {
-    case p: BusSubscribe => {
+
+    case p: Bus.Subscribe => {
       log.info("subscribe " + p)
       MqttTopicClassificator.checkTopicName(p.topic)
 
@@ -40,19 +45,19 @@ class EventBusActor extends Actor with ActorLogging {
         .sortBy(t => t._1)
         .foreach(t => {
 
-          p.actor ! PublishPayload(t._2, auto = true, qos = p.qos)
+          p.actor ! Bus.PublishPayload(t._2, auto = true, qos = p.qos)
         })
     }
-    case p: BusUnsubscribe => {
+    case p: Bus.Unsubscribe => {
       log.info("unsubscribe " + p)
       context become working(subscriptions.filter(t => !(t._1 == p.topic && t._2 == p.actor)), retains)
     }
 
-    case p: BusDeattach => {
+    case p: Bus.Deattach => {
       log.info("clearing bus for " + p)
       context become working(subscriptions.filter(t => t._2 != p.actor), retains)
     }
-    case p: BusPublish => {
+    case p: Bus.Publish => {
 
       log.info("got " + p)
       log.info("current subscriptions " + subscriptions.map(t => t._1 + "@" + t._3).mkString(", "))
@@ -64,7 +69,7 @@ class EventBusActor extends Actor with ActorLogging {
         .foreach(t => {
           log.info("publish " + p + " by subscriptions: " + t._2.map(x => x._1 + "@" + x._3).mkString(", "))
           val max_qos = t._2.map(x => x._3).max
-          t._1 ! PublishPayload(p.payload, auto = false, qos = max_qos)
+          t._1 ! Bus.PublishPayload(p.payload, auto = false, qos = max_qos)
         })
 
       if (p.retain == true) {
@@ -88,65 +93,4 @@ class EventBusActor extends Actor with ActorLogging {
   }
 }
 
-object MqttTopicClassificator {
 
-  def checkTopicName(to: String): Boolean = {
-    if (to != "#" && to.contains("#") &&
-      (to.replace("#", "/#") != to.replace("/#", "//#") || to.last != '#')) {
-      throw new BadSubscriptionException(to)
-    }
-
-    if (to != "+" && to.contains("+") && (to.charAt(0) != '+') && to.replace("+", "/+") != to.replace("/+", "//+")) {
-      throw new BadSubscriptionException(to)
-    }
-
-    if (to.length > 0 && to.charAt(0) == '+')
-      checkTopicName(to.substring(1))
-
-    return true
-  }
-
-  def isSubclass(actual: String, subscribing: String): Boolean = {
-
-    if (!subscribing.contains('#') && !subscribing.contains('+'))
-      return isPlainSubclass(actual, subscribing)
-
-    if (subscribing == "#")
-      return true
-
-    val square_index = subscribing.indexOf('#')
-
-    if (square_index > 0) {
-      val sub = if (square_index > 1) subscribing.substring(0, square_index - 1) + ".*" else "/.*"
-
-      return isRegexSubclass(actual, sub)
-    }
-
-    return isRegexSubclass(actual, subscribing)
-  }
-
-  private def isPlainSubclass(actual: String, subscribing: String): Boolean =
-    subscribing == actual
-
-  private def isRegexSubclass(actual: String, subscribing: String): Boolean = {
-
-    val reg = subscribing.zipWithIndex.map {
-      case (c, i) => {
-        if (c == '+')
-          if (i == 0 || i == (subscribing.length - 1)) "[^/]*" else "[^/]+"
-        else
-          c.toString
-      }
-    }.mkString
-
-    val res = actual.matches(reg)
-
-    res
-  }
-
-  private def isSquaredSubclass(actual: String, sub: String) = {
-    actual.startsWith(sub)
-  }
-}
-
-class BadSubscriptionException(msg: String) extends Throwable

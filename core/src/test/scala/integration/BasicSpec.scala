@@ -25,7 +25,7 @@ class BasicSpec extends TestKit(ActorSystem("BasicSpec")) with ImplicitSender wi
     implicit val materializer = ActorMaterializer()(system)
 
     def create_actor(name: String): ActorRef = {
-      val h = system.actorOf(Props(new TcpConnectionActor(devices)).withMailbox("priority-dispatcher"), name)
+      val h = system.actorOf(Props(new TcpConnectionActor(devices)), name)
 
       val s = Source(ActorPublisher[ByteString](h))
       s.to(Sink.actorRef(self, Tcp.Close)).run()
@@ -123,7 +123,7 @@ class BasicSpec extends TestKit(ActorSystem("BasicSpec")) with ImplicitSender wi
       expectMsg("20020000".toByteString) //Connack(Header(false,0,false),0)
 
       h ! "101600044d51545404020000000a6d79636c69656e746964".toByteString //Connect(Header(false,0,false),ConnectFlags(false,false,false,0,false,true,0),myclientid,None,None,None,None)
-      expectMsg(Tcp.Close)
+      expectMsgType[Failure]
       expectNoMsg(Bag.wait_time)
       success
     }
@@ -132,7 +132,7 @@ class BasicSpec extends TestKit(ActorSystem("BasicSpec")) with ImplicitSender wi
       val h = create_actor("51214")
 
       h ! "10140002686a04020000000a6d79636c69656e746964".toByteString //Broken package
-      expectMsgType[Failure]
+      expectMsg(Tcp.Close)
       expectNoMsg(Bag.wait_time)
       success
     }

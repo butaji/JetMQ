@@ -7,6 +7,7 @@ import akka.stream.actor.ActorPublisher
 import akka.stream.scaladsl.{Sink, Source}
 import akka.testkit.{ImplicitSender, TestKit}
 import akka.util.ByteString
+import integration.TcpConnectionActor
 import net.jetmq.broker.Helpers._
 import net.jetmq.broker._
 import net.jetmq.tests.Bag
@@ -24,7 +25,7 @@ class WsSpec extends TestKit(ActorSystem("WsSpec")) with ImplicitSender with Spe
     implicit val materializer = ActorMaterializer()(system)
 
     def create_actor(name: String): ActorRef = {
-      val h = system.actorOf(Props(new TcpConnectionActor(devices)).withMailbox("priority-dispatcher"), name)
+      val h = system.actorOf(Props(new TcpConnectionActor(devices)), name)
 
       val s = Source(ActorPublisher[ByteString](h))
       s.to(Sink.actorRef(self, Tcp.Close)).run()

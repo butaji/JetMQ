@@ -1,5 +1,6 @@
 package integration
 
+import akka.actor.Status.Failure
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.io.Tcp
 import akka.stream.ActorMaterializer
@@ -25,7 +26,7 @@ class WillSpec extends TestKit(ActorSystem("WillSpec")) with ImplicitSender with
     implicit val materializer = ActorMaterializer()(system)
 
     def create_actor(name: String): ActorRef = {
-      val h = system.actorOf(Props(new TcpConnectionActor(devices)).withMailbox("priority-dispatcher"), name)
+      val h = system.actorOf(Props(new TcpConnectionActor(devices)), name)
 
       val s = Source(ActorPublisher[ByteString](h))
       s.to(Sink.actorRef(self, Tcp.Close)).run()
@@ -87,7 +88,7 @@ class WillSpec extends TestKit(ActorSystem("WillSpec")) with ImplicitSender with
       expectMsg("9003000202".toByteString) //Suback(Header(false,0,false),2,Vector(2))
 
       h3 ! Tcp.PeerClosed
-      expectMsg(Tcp.Close)
+      expectMsgType[Failure]
 
       expectMsg("34220007546f7069632f430001636c69656e74206e6f7420646973636f6e6e6563746564".toByteString) //Publish(Header(false,2,false),Topic/C,1,ByteVector(23 bytes, 0x636c69656e74206e6f7420646973636f6e6e6563746564))
 

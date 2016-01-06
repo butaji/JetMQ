@@ -1,5 +1,6 @@
 package integration
 
+import akka.actor.Status.Failure
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.io.Tcp
 import akka.stream.ActorMaterializer
@@ -25,7 +26,7 @@ class HandlerSpec extends TestKit(ActorSystem("HandlerSpec")) with ImplicitSende
     implicit val materializer = ActorMaterializer()(system)
 
     def create_actor(name: String): ActorRef = {
-      val h = system.actorOf(Props(new TcpConnectionActor(devices)).withMailbox("priority-dispatcher"), name)
+      val h = system.actorOf(Props(new TcpConnectionActor(devices)), name)
 
       val s = Source(ActorPublisher[ByteString](h))
       s.to(Sink.actorRef(self, Tcp.Close)).run()
@@ -113,7 +114,7 @@ class HandlerSpec extends TestKit(ActorSystem("HandlerSpec")) with ImplicitSende
       h ! "8208000100032b2f4302".toByteString //Subscribe(Header(false,1,false),1,Vector((+/C,2)))
 
       h ! "358c100008546f706963412f4200026c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e676c6f6e67".toByteString //Publish(Header(false,2,true),TopicA/B,2,ByteVector(2048 bytes, #259165444))
-      expectMsg(Tcp.Close)
+      expectMsgType[Failure]
       expectNoMsg(Bag.wait_time)
       success
     }
@@ -203,7 +204,7 @@ class HandlerSpec extends TestKit(ActorSystem("HandlerSpec")) with ImplicitSende
       expectMsg("40020001".toByteString) //Puback(Header(false,0,false),1)
 
       h ! "104a00044d5154540400003c003e4120636c69656e7469642074686174206973206c6f6e676572207468616e203233206368617273202d2073686f756c6420776f726b20696e20332e312e31".toByteString //Connect(Header(false,0,false),ConnectFlags(false,false,false,0,false,false,60),A clientid that is longer than 23 chars - should work in 3.1.1,None,None,None,None)
-      expectMsg(Tcp.Close)
+      expectMsgType[Failure]
       expectNoMsg(Bag.wait_time)
       success
     }
@@ -289,7 +290,7 @@ class HandlerSpec extends TestKit(ActorSystem("HandlerSpec")) with ImplicitSende
       h ! "a20b000100072f546f70696341".toByteString //Unsubscribe(Header(false,1,false),1,Vector(/TopicA))
 
       h ! "820b00020006546f7069634100".toByteString //Subscribe(Header(false,1,false),2,Vector((TopicA,0)))
-      expectMsg(Tcp.Close)
+      expectMsgType[Failure]
       expectNoMsg(Bag.wait_time)
       success
     }
@@ -446,7 +447,7 @@ class HandlerSpec extends TestKit(ActorSystem("HandlerSpec")) with ImplicitSende
       expectMsg("40020012".toByteString) //Puback(Header(false,0,false),18)
 
       h ! "101200044d5154540400003c00066e6f726d616c".toByteString //Connect(Header(false,0,false),ConnectFlags(false,false,false,0,false,false,60),normal,None,None,None,None)
-      expectMsg(Tcp.Close)
+      expectMsgType[Failure]
       expectNoMsg(Bag.wait_time)
       success
     }
@@ -541,7 +542,7 @@ class HandlerSpec extends TestKit(ActorSystem("HandlerSpec")) with ImplicitSende
       expectMsg("20020002".toByteString) //Connack(Header(false,0,false),2)
 
       h ! "330d0008546f706963412f42000131".toByteString //Publish(Header(false,1,true),TopicA/B,1,ByteVector(1 bytes, 0x31))
-      expectMsg(Tcp.Close)
+      expectMsgType[Failure]
       expectNoMsg(Bag.wait_time)
       success
     }
@@ -642,7 +643,7 @@ class HandlerSpec extends TestKit(ActorSystem("HandlerSpec")) with ImplicitSende
       expectMsg("9003000402".toByteString) //Suback(Header(false,0,false),4,Vector(2))
 
       h ! "101200044d5154540402003c00066e6f726d616c".toByteString //Connect(Header(false,0,false),ConnectFlags(false,false,false,0,false,true,60),normal,None,None,None,None)
-      expectMsg(Tcp.Close)
+      expectMsgType[Failure]
       expectNoMsg(Bag.wait_time)
       success
     }
@@ -848,7 +849,7 @@ class HandlerSpec extends TestKit(ActorSystem("HandlerSpec")) with ImplicitSende
       expectMsg("320e0007546f7069632f430008333333".toByteString) //Publish(Header(false,1,false),Topic/C,8,ByteVector(3 bytes, 0x333333))
       expectMsg("7002000f".toByteString) //Pubcomp(Header(false,0,false),15)
       h ! "100c00044d5154540400003c0000".toByteString //Connect(Header(false,0,false),ConnectFlags(false,false,false,0,false,false,60),,None,None,None,None)
-      expectMsg(Tcp.Close)
+      expectMsgType[Failure]
       expectNoMsg(Bag.wait_time)
       success
     }
@@ -1091,7 +1092,7 @@ class HandlerSpec extends TestKit(ActorSystem("HandlerSpec")) with ImplicitSende
       expectMsg("b0020017".toByteString) //Unsuback(Header(false,0,false),23)
 
       h ! "104a00044d5154540400003c003e4120636c69656e7469642074686174206973206c6f6e676572207468616e203233206368617273202d2073686f756c6420776f726b20696e20332e312e31".toByteString //Connect(Header(false,0,false),ConnectFlags(false,false,false,0,false,false,60),A clientid that is longer than 23 chars - should work in 3.1.1,None,None,None,None)
-      expectMsg(Tcp.Close)
+      expectMsgType[Failure]
       expectNoMsg(Bag.wait_time)
       success
     }
@@ -1240,7 +1241,7 @@ class HandlerSpec extends TestKit(ActorSystem("HandlerSpec")) with ImplicitSende
       h ! "40020002".toByteString //Puback(Header(false,0,false),2)
 
       h ! "104a00044d5154540400003c003e4120636c69656e7469642074686174206973206c6f6e676572207468616e203233206368617273202d2073686f756c6420776f726b20696e20332e312e31".toByteString //Connect(Header(false,0,false),ConnectFlags(false,false,false,0,false,false,60),A clientid that is longer than 23 chars - should work in 3.1.1,None,None,None,None)
-      expectMsg(Tcp.Close)
+      expectMsgType[Failure]
       expectNoMsg(Bag.wait_time)
       success
     }
@@ -1446,7 +1447,7 @@ class HandlerSpec extends TestKit(ActorSystem("HandlerSpec")) with ImplicitSende
       h ! "70020006".toByteString //Pubcomp(Header(false,0,false),6)
 
       h ! "104a00044d5154540400003c003e4120636c69656e7469642074686174206973206c6f6e676572207468616e203233206368617273202d2073686f756c6420776f726b20696e20332e312e31".toByteString //Connect(Header(false,0,false),ConnectFlags(false,false,false,0,false,false,60),A clientid that is longer than 23 chars - should work in 3.1.1,None,None,None,None)
-      expectMsg(Tcp.Close)
+      expectMsgType[Failure]
       expectNoMsg(Bag.wait_time)
       success
     }

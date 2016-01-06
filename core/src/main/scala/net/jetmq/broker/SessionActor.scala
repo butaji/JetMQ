@@ -18,7 +18,7 @@ sealed trait SessionBag {
   val sending: List[Either[Publish, Pubrel]]
 }
 
-case class SessionWaitingBag(sending: List[Either[Publish, Pubrel]], stashed: List[PublishPayload], message_id: Int, clean_session: Boolean) extends SessionBag
+case class SessionWaitingBag(sending: List[Either[Publish, Pubrel]], stashed: List[Bus.PublishPayload], message_id: Int, clean_session: Boolean) extends SessionBag
 
 case class SessionConnectedBag(connection: ActorRef, clean_session: Boolean, message_id: Int, last_packet: Long, sending: List[Either[Publish, Pubrel]], will: Option[Publish]) extends SessionBag
 
@@ -88,7 +88,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
       stay
     }
 
-    case Event(p@PublishPayload(pp:Publish,_,_), b: SessionWaitingBag) => {
+    case Event(p@Bus.PublishPayload(pp:Publish,_,_), b: SessionWaitingBag) => {
 
 
       if (pp.header.qos > 0) {
@@ -130,7 +130,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
     }
 
     case Event(p: Subscribe, b:SessionConnectedBag) => {
-      p.topics.foreach(t => bus ! BusSubscribe(t._1, self, t._2))
+      p.topics.foreach(t => bus ! Bus.Subscribe(t._1, self, t._2))
 
       sender ! Suback(Header(dup = false, 0, retain = false), p.message_identifier, p.topics.map(x => x._2))
       stay using b.copy(last_packet = System.currentTimeMillis())
@@ -150,7 +150,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
         log.warning("got message with retain false and empty payload")
       }
 
-      bus ! BusPublish(p.topic, p, p.header.retain, p.header.retain == true && p.payload.length == 0)
+      bus ! Bus.Publish(p.topic, p, p.header.retain, p.header.retain == true && p.payload.length == 0)
 
       stay using b.copy(last_packet = System.currentTimeMillis())
     }
@@ -198,7 +198,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
 
     case Event(p: Unsubscribe, b:SessionConnectedBag) => {
 
-      p.topics.foreach(t => bus ! BusUnsubscribe(t, self))
+      p.topics.foreach(t => bus ! Bus.Unsubscribe(t, self))
 
       sender ! Unsuback(Header(dup = false, 0, retain = false), p.message_identifier)
 
@@ -211,7 +211,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
       stay using b.copy(last_packet = System.currentTimeMillis())
     }
 
-    case Event(x@PublishPayload(p: Publish, _, _), b: SessionConnectedBag) => {
+    case Event(x@Bus.PublishPayload(p: Publish, _, _), b: SessionConnectedBag) => {
 
       val qos = p.header.qos min x.qos
 
@@ -235,7 +235,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
 
         log.info("publishing will " + p)
 
-        bus ! BusPublish(p.topic, p, p.header.retain, p.header.retain == true && p.payload.length == 0)
+        bus ! Bus.Publish(p.topic, p, p.header.retain, p.header.retain == true && p.payload.length == 0)
       }
 
       goto(WaitingForNewSession) using SessionWaitingBag(b.sending, List(), 1, b.clean_session)
@@ -249,7 +249,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
       log.info("Resetting state")
 
       if (b.clean_session == true)
-        bus ! BusDeattach(self)
+        bus ! Bus.Deattach(self)
 
       goto(WaitingForNewSession) using SessionWaitingBag(b.sending, List(), 1, b.clean_session)
     }
@@ -260,7 +260,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
       log.info("Disonnecting state")
 
       if (b.clean_session == true) {
-        bus ! BusDeattach(self)
+        bus ! Bus.Deattach(self)
       }
 
       goto(WaitingForNewSession) using SessionWaitingBag(b.sending, List(), 1, b.clean_session)

@@ -1,32 +1,19 @@
 package net.jetmq.broker
 
-import akka.actor.{Actor, ActorLogging, ActorRef}
+import akka.actor.{ActorLogging, ActorRef}
 import akka.pattern.ask
 import akka.stream.actor.ActorPublisherMessage.{Cancel, Request}
 import akka.stream.actor.ActorSubscriberMessage.{OnComplete, OnError, OnNext}
-import akka.stream.actor.{ActorSubscriber, MaxInFlightRequestStrategy, RequestStrategy}
+import akka.stream.actor.{ActorSubscriber, OneByOneRequestStrategy, RequestStrategy}
 import akka.util.Timeout
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
-sealed trait ConnectionState
+class MqttConnectionActor(sessions: ActorRef) extends ActorSubscriber with ActorLogging with ActorPublisherWithBuffer[Packet] {
 
-case object Active extends ConnectionState
-
-case object Waiting extends ConnectionState
-
-sealed trait ConnectionBag
-
-case class EmptyConnectionBag() extends ConnectionBag
-
-case class ConnectionSessionBag(session: ActorRef, connection: ActorRef) extends ConnectionBag
-
-class MqttConnectionActor(sessions: ActorRef) extends ActorSubscriber with ActorPublisherWithBuffer[Packet] with ActorLogging {
-  override protected def requestStrategy: RequestStrategy = new MaxInFlightRequestStrategy(64) {
-    override def inFlightInternally: Int = buffer.length
-  }
+  override protected def requestStrategy: RequestStrategy = OneByOneRequestStrategy
 
   var session = ActorRef.noSender
 
@@ -101,12 +88,4 @@ class MqttConnectionActor(sessions: ActorRef) extends ActorSubscriber with Actor
       println("Got " + x.getClass().getCanonicalName() + " " + x + " from " + sender)
     }
   }
-
-
 }
-
-class TcpConnectionActor(s: ActorRef) extends Actor {
-  def receive = ???
-}
-
-

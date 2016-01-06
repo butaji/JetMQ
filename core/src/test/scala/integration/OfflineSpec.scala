@@ -25,7 +25,7 @@ class OfflineSpec extends TestKit(ActorSystem("OfflineSpec")) with ImplicitSende
     implicit val materializer = ActorMaterializer()(system)
 
     def create_actor(name: String): ActorRef = {
-      val h = system.actorOf(Props(new TcpConnectionActor(devices)).withMailbox("priority-dispatcher"), name)
+      val h = system.actorOf(Props(new TcpConnectionActor(devices)), name)
 
       val s = Source(ActorPublisher[ByteString](h))
       s.to(Sink.actorRef(self, Tcp.Close)).run()

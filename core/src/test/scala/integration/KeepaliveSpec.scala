@@ -1,5 +1,6 @@
 package integration
 
+import akka.actor.Status.Failure
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.io.Tcp
 import akka.stream.ActorMaterializer
@@ -23,7 +24,7 @@ class KeepaliveSpec extends TestKit(ActorSystem("KeepaliveSpec")) with ImplicitS
     implicit val materializer = ActorMaterializer()(system)
 
     def create_actor(name: String): ActorRef = {
-      val h = system.actorOf(Props(new TcpConnectionActor(devices)).withMailbox("priority-dispatcher"), name)
+      val h = system.actorOf(Props(new TcpConnectionActor(devices)), name)
 
       val s = Source(ActorPublisher[ByteString](h))
       s.to(Sink.actorRef(self, Tcp.Close)).run()
@@ -88,7 +89,7 @@ class KeepaliveSpec extends TestKit(ActorSystem("KeepaliveSpec")) with ImplicitS
 
       Thread.sleep(100)
 
-      expectMsg(Bag.ten_sec, Tcp.Close)
+      expectMsgType[Failure](Bag.ten_sec)
       expectMsg(Bag.ten_sec, "341b00072f546f7069634100016b656570616c69766520657870697279".toByteString) //Publish(Header(false,2,false),/TopicA,1,ByteVector(16 bytes, 0x6b656570616c69766520657870697279))
 
       h2 ! "50020001".toByteString //Pubrec(Header(false,0,false),1)
