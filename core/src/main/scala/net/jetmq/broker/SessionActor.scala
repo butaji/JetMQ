@@ -31,7 +31,7 @@ case object KeepAliveTimeout
 
 case object TrySending
 
-class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
+class SessionActor(bus_manager: ActorRef, bus_publisher: ActorRef) extends FSM[SessionState, SessionBag] {
 
   startWith(WaitingForNewSession, SessionWaitingBag(List(), List(), 1, clean_session = true))
 
@@ -130,7 +130,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
     }
 
     case Event(p: Subscribe, b:SessionConnectedBag) => {
-      p.topics.foreach(t => bus ! Bus.Subscribe(t._1, self, t._2))
+      p.topics.foreach(t => bus_manager ! Bus.Subscribe(t._1, self, t._2))
 
       sender ! Suback(Header(dup = false, 0, retain = false), p.message_identifier, p.topics.map(x => x._2))
       stay using b.copy(last_packet = System.currentTimeMillis())
@@ -150,7 +150,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
         log.warning("got message with retain false and empty payload")
       }
 
-      bus ! Bus.Publish(p.topic, p, p.header.retain, p.header.retain == true && p.payload.length == 0)
+      bus_publisher ! Bus.Publish(p.topic, p, p.header.retain, p.header.retain == true && p.payload.length == 0)
 
       stay using b.copy(last_packet = System.currentTimeMillis())
     }
@@ -198,7 +198,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
 
     case Event(p: Unsubscribe, b:SessionConnectedBag) => {
 
-      p.topics.foreach(t => bus ! Bus.Unsubscribe(t, self))
+      p.topics.foreach(t => bus_manager ! Bus.Unsubscribe(t, self))
 
       sender ! Unsuback(Header(dup = false, 0, retain = false), p.message_identifier)
 
@@ -235,7 +235,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
 
         log.info("publishing will " + p)
 
-        bus ! Bus.Publish(p.topic, p, p.header.retain, p.header.retain == true && p.payload.length == 0)
+        bus_publisher ! Bus.Publish(p.topic, p, p.header.retain, p.header.retain == true && p.payload.length == 0)
       }
 
       goto(WaitingForNewSession) using SessionWaitingBag(b.sending, List(), 1, b.clean_session)
@@ -249,7 +249,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
       log.info("Resetting state")
 
       if (b.clean_session == true)
-        bus ! Bus.Deattach(self)
+        bus_manager ! Bus.Deattach(self)
 
       goto(WaitingForNewSession) using SessionWaitingBag(b.sending, List(), 1, b.clean_session)
     }
@@ -260,7 +260,7 @@ class SessionActor(bus: ActorRef) extends FSM[SessionState, SessionBag] {
       log.info("Disonnecting state")
 
       if (b.clean_session == true) {
-        bus ! Bus.Deattach(self)
+        bus_manager ! Bus.Deattach(self)
       }
 
       goto(WaitingForNewSession) using SessionWaitingBag(b.sending, List(), 1, b.clean_session)

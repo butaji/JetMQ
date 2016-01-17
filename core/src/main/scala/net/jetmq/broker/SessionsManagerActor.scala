@@ -4,7 +4,7 @@ import java.net.URLEncoder
 import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 
-class SessionsManagerActor(bus: ActorRef) extends Actor with ActorLogging {
+class SessionsManagerActor(bus_manager: ActorRef, bus_publisher: ActorRef) extends Actor with ActorLogging {
 
   def getActorName(client_id: String): String = {
 
@@ -25,7 +25,7 @@ class SessionsManagerActor(bus: ActorRef) extends Actor with ActorLogging {
       return c.get
     }
 
-    val a = context.actorOf(Props(new SessionActor(bus)), name = actor_name)
+    val a = context.actorOf(Props(new SessionActor(bus_manager, bus_publisher)), name = actor_name)
 
     context.watch(a)
 
